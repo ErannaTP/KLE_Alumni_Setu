@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Signup | Alumni Setu</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="min-h-screen bg-[#0f0f14] flex items-center justify-center text-white">
+
+  <div class="w-full max-w-md bg-[#16161c] p-8 rounded-xl shadow-lg">
+    <h1 class="text-2xl font-bold mb-6 text-center">Create Account</h1>
+
+    <div class="space-y-4">
+      <input
+        id="name"
+        type="text"
+        placeholder="Full name"
+        class="w-full p-3 rounded bg-[#1b1b23] focus:outline-none"
+      />
+
+      <input
+        id="email"
+        type="email"
+        placeholder="Email address"
+        class="w-full p-3 rounded bg-[#1b1b23] focus:outline-none"
+      />
+
+      <input
+        id="password"
+        type="password"
+        placeholder="Password"
+        class="w-full p-3 rounded bg-[#1b1b23] focus:outline-none"
+      />
+
+      <!-- ✅ ERROR MESSAGE BOX (IMPORTANT) -->
+      <p id="err" class="text-red-400 text-sm"></p>
+
+      <button
+        onclick="signup()"
+        class="w-full bg-purple-600 hover:bg-purple-700 p-3 rounded font-semibold"
+      >
+        Sign up
+      </button>
+    </div>
+
+    <p class="text-sm text-center text-gray-400 mt-6">
+      Already have an account?
+      <a href="/pages/login.html" class="text-purple-400 hover:underline">
+        Login
+      </a>
+    </p>
+  </div>
+
+  <!-- ✅ JS FILE -->
+  <script src="/js/signup.js"></script>
+</body>
+</html>

@@ -1,35 +1,49 @@
-// public/js/api.js
-
-// Simple mock login: test / test
-function mockLogin(event) {
+// === REAL LOGIN FLOW ===
+async function login(event) {
   event.preventDefault();
 
-  const usernameEl = document.getElementById("username");
-  const passwordEl = document.getElementById("password");
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value.trim();
 
-  const username = (usernameEl?.value || "").trim();
-  const password = (passwordEl?.value || "").trim();
+  const res = await fetch("http://localhost:5136/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
 
-  if (username === "test" && password === "test") {
-    // store fake auth info
-    localStorage.setItem("token", "mock-token");
-    localStorage.setItem("userId", "mock-user-1");
-    localStorage.setItem("username", username);
-
-    // always go to profile setup FIRST
-    window.location.href = "/pages/profile.html";
-  } else {
-    alert("Invalid credentials. Use username: test and password: test");
+  if (!res.ok) {
+    alert("Invalid credentials");
+    return;
   }
+
+  const data = await res.json();
+
+  // Save token + user ID for frontend
+  localStorage.setItem("token", data.token);
+  localStorage.setItem("userId", data.user.id);
+  localStorage.setItem("username", data.user.name);
+
+  window.location.href = "/pages/profile.html";
+}
+
+// Attach token to all fetch calls (global helper)
+async function apiFetch(url, options = {}) {
+  const token = localStorage.getItem("token");
+
+  options.headers = {
+    ...(options.headers || {}),
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  };
+
+  return fetch(url, options);
 }
 
 function logout() {
-  localStorage.removeItem("token");
-  localStorage.removeItem("userId");
-  localStorage.removeItem("username");
+  localStorage.clear();
   window.location.href = "/pages/login.html";
 }
 
-// expose globally for inline handlers
-window.mockLogin = mockLogin;
+window.login = login;
+window.apiFetch = apiFetch;
 window.logout = logout;

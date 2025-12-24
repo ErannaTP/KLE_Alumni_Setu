@@ -7,50 +7,85 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  ALUMNI
+  STUDENT
+}
+
+enum FriendRequestStatus {
+  PENDING
+  ACCEPTED
+}
+
 model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
+  id            String   @id @default(uuid())
+  email         String   @unique
   passwordHash  String
   name          String
   profilePic    String?
   bio           String?
   achievements  String?
   skills        String?
-  domains       String[]  @default([])
+  domains       String[] @default([])
   batchYear     Int?
   company       String?
   position      String?
   rating        Float?
-  emailVerified Boolean   @default(false)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  emailVerified Boolean  @default(false)
+  role          UserRole @default(ALUMNI)
 
-  posts         Post[]
-  likes         Like[]
-  comments      Comment[]
-  messagesSent  Message[] @relation("sent")
-  messagesRecv  Message[] @relation("recv")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  posts    Post[]
+  likes    Like[]
+  comments Comment[]
+
+  messagesSent Message[] @relation("SentMessages")
+  messagesRecv Message[] @relation("ReceivedMessages")
+
+  followers Follow[] @relation("Followers")
+  following Follow[] @relation("Following")
+
+  conversationsA Conversation[] @relation("UserAConversations")
+  conversationsB Conversation[] @relation("UserBConversations")
+
+  sentFriendRequests     FriendRequest[] @relation("SentFriendRequests")
+  receivedFriendRequests FriendRequest[] @relation("ReceivedFriendRequests")
+
+  connections    Connection[] @relation("userConnections")
+  connectionsOf  Connection[] @relation("friendConnections")
+}
+
+model Follow {
+  id          String   @id @default(uuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("Following", fields: [followerId], references: [id])
+  following User @relation("Followers", fields: [followingId], references: [id])
+
+  @@unique([followerId, followingId])
 }
 
 model Post {
-  id            String     @id @default(uuid())
+  id            String   @id @default(uuid())
   userId        String
   title         String?
   content       String
-  imageUrls     String[]   @default([])
+  imageUrls     String[] @default([])
   domain        String?
-  hashtags      String[]   @default([])
-  likesCount    Int        @default(0)
-  commentsCount Int        @default(0)
-  createdAt     DateTime   @default(now())
+  hashtags      String[] @default([])
+  likesCount    Int      @default(0)
+  commentsCount Int      @default(0)
+  createdAt     DateTime @default(now())
 
-  user          User       @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
-  // ADD THESE:
-  likes         Like[]
-  comments      Comment[]
+  likes    Like[]
+  comments Comment[]
 }
-
 
 model Like {
   id        String   @id @default(uuid())
@@ -58,8 +93,8 @@ model Like {
   postId    String
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id])
-  post      Post     @relation(fields: [postId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+  post Post @relation(fields: [postId], references: [id])
 
   @@unique([userId, postId])
 }
@@ -72,17 +107,74 @@ model Comment {
   parentId  String?
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id])
-  post      Post     @relation(fields: [postId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+  post Post @relation(fields: [postId], references: [id])
 }
 
 model Message {
-  id         String   @id @default(uuid())
+  id          String   @id @default(uuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  senderId    String
+  receiverId  String
+  content     String
+  replyToId   String?
+  deliveredAt DateTime?
+  seenAt      DateTime?
+  edited      Boolean  @default(false)
+
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+
+  sender   User @relation("SentMessages", fields: [senderId], references: [id])
+  receiver User @relation("ReceivedMessages", fields: [receiverId], references: [id])
+}
+
+model Conversation {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userAId   String
+  userBId   String
+
+  userA User @relation("UserAConversations", fields: [userAId], references: [id])
+  userB User @relation("UserBConversations", fields: [userBId], references: [id])
+
+  isRequestA Boolean @default(false)
+  isRequestB Boolean @default(false)
+
+  messages Message[]
+
+  @@unique([userAId, userBId])
+}
+
+model FriendRequest {
+  id         String               @id @default(uuid())
   senderId   String
   receiverId String
-  text       String
-  createdAt  DateTime @default(now())
+  status     FriendRequestStatus  @default(PENDING)
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
 
-  sender     User @relation("sent", fields: [senderId], references: [id])
-  receiver   User @relation("recv", fields: [receiverId], references: [id])
+  sender   User @relation("SentFriendRequests", fields: [senderId], references: [id])
+  receiver User @relation("ReceivedFriendRequests", fields: [receiverId], references: [id])
+
+  @@unique([senderId, receiverId])
+  @@index([receiverId])
+  @@index([senderId])
+}
+
+model Connection {
+  id        String   @id @default(uuid())
+  userId    String
+  friendId  String
+  createdAt DateTime @default(now())
+
+  user   User @relation("userConnections", fields: [userId], references: [id])
+  friend User @relation("friendConnections", fields: [friendId], references: [id])
+
+  @@unique([userId, friendId])
+  @@index([friendId])
 }

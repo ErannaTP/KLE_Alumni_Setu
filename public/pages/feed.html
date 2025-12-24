@@ -21,6 +21,19 @@
       overflow-x: hidden;
     }
 
+    .user-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #fde68a, #f59e0b);
+      color: #78350f;
+      box-shadow: 0 2px 6px rgba(245, 158, 11, 0.35);
+      letter-spacing: 0.3px;
+    }
+
     /* Sidebar */
     .sidebar {
       background: #ffffff;
@@ -145,22 +158,36 @@
 
   <!-- LOGIN + PROFILE GUARD -->
   <script>
-    const FE_API_URL = "http://localhost:4000/api";
+    const FE_API_URL = "http://localhost:5136/api";
+    const token = localStorage.getItem("token");
 
-    if (!localStorage.getItem("token")) {
+    if (!token) {
       window.location.href = "/pages/login.html";
     } else {
-      fetch(FE_API_URL + "/user/profile")
-        .then((r) => r.json())
-        .then((u) => {
+      fetch(FE_API_URL + "/user/profile", {
+        headers: {
+          "Authorization": "Bearer " + token
+        }
+      })
+        .then(res => {
+          if (!res.ok) throw new Error("Unauthorized");
+          return res.json();
+        })
+        .then(u => {
           const incomplete =
-            !u || !u.bio || !Array.isArray(u.domains) || u.domains.length === 0;
+            !u ||
+            !u.bio ||
+            !Array.isArray(u.domains) ||
+            u.domains.length === 0;
 
           if (incomplete) {
             window.location.href = "/pages/profile.html?setup=1";
           }
         })
-        .catch((err) => console.error("Profile check failed", err));
+        .catch(() => {
+          localStorage.clear();
+          window.location.href = "/pages/login.html";
+        });
     }
   </script>
 
@@ -182,6 +209,10 @@
       <button class="nav-button p-3 text-gray-700"
               onclick="window.location.href='messages.html'">
         Messages
+      </button>
+      <button class="nav-button p-3 text-gray-700"
+              onclick="window.location.href='connections.html'">
+        Connections
       </button>
     </nav>
 
@@ -265,7 +296,7 @@
 
   <!-- Scripts -->
   <script src="../js/api.js"></script>
-  <script src="../js/feed.js"></script>
+  <script type="module" src="../js/feed.js"></script>
 
 </body>
 </html>

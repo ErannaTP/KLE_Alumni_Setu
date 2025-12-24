@@ -1,13 +1,36 @@
 // public/js/profile.js
 
-const API_BASE = "http://localhost:4000/api/user";
+const API_BASE = "http://localhost:5136/api/user";
 
+// -------------------------------
+// AUTH CHECK
+// -------------------------------
+const token = localStorage.getItem("token");
+
+if (!token) {
+  window.location.href = "/pages/login.html";
+}
+
+function authHeaders() {
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  };
+}
+
+// -------------------------------
+// DOM READY
+// -------------------------------
 document.addEventListener("DOMContentLoaded", () => {
   renderDomainCheckboxes();
   loadProfile();
+  loadConnectionStats();
 });
 
-let availableDomains = [
+// -------------------------------
+// DOMAINS
+// -------------------------------
+const availableDomains = [
   "Cybersecurity",
   "Data Science",
   "Artificial Intelligence",
@@ -18,55 +41,54 @@ let availableDomains = [
   "Mobile App Development",
   "Cloud Computing",
   "Networking",
-  "General",
-  "Success Story",
-  "New Hiring Opportunity"
 ];
 
 function renderDomainCheckboxes() {
-  const boxContainer = document.getElementById("profile-domains-checkboxes");
-  boxContainer.innerHTML = "";
+  const box = document.getElementById("profile-domains-checkboxes");
+  box.innerHTML = "";
 
-  availableDomains.forEach(d => {
-    boxContainer.innerHTML += `
-      <label class="domain-checkbox-label">
-        <input type="checkbox" name="profile-domains" value="${d}" class="mr-2" disabled />${d}
+  availableDomains.forEach((d) => {
+    box.innerHTML += `
+      <label class="domain-checkbox-label flex items-center gap-2">
+        <input type="checkbox" name="profile-domains" value="${d}" disabled />
+        ${d}
       </label>
     `;
   });
 }
 
+// -------------------------------
+// LOAD PROFILE
+// -------------------------------
 async function loadProfile() {
   try {
-    const res = await fetch(`${API_BASE}/profile`);
+    const res = await fetch(`${API_BASE}/profile`, {
+      headers: authHeaders(),
+    });
+
+    if (!res.ok) throw new Error("Unauthorized");
+
     const user = await res.json();
 
-    if (!user) throw new Error("User not found");
-
-    // Avatar + display name
+    // Avatar
     document.getElementById("profile-avatar").textContent =
       (user.name || "U")[0].toUpperCase();
 
-    document.getElementById("profile-name-display").innerHTML =
-      `${user.name} <span class="user-badge ml-2">Alumni</span>`;
+    // Display name (LOCKED)
+    document.getElementById("profile-name-display").innerText = user.name;
 
-    // Form fields
+    // Inputs
     document.getElementById("profile-name").value = user.name || "";
     document.getElementById("profile-bio").value = user.bio || "";
     document.getElementById("profile-company").value = user.company || "";
     document.getElementById("profile-position").value = user.position || "";
     document.getElementById("profile-batch").value = user.batchYear || "";
 
-    // Domain chips
-    const domainChips = document.getElementById("profile-domains");
-    domainChips.innerHTML = (user.domains || [])
-      .map(d => `<span class="domain-tag">${d}</span>`)
-      .join("");
+    // Domains
+    const domains = user.domains || [];
 
-    // Check checkboxes
-    const boxes = document.querySelectorAll('input[name="profile-domains"]');
-    boxes.forEach(box => {
-      box.checked = user.domains.includes(box.value);
+    document.querySelectorAll('input[name="profile-domains"]').forEach((box) => {
+      box.checked = domains.includes(box.value);
     });
 
   } catch (err) {
@@ -75,29 +97,46 @@ async function loadProfile() {
   }
 }
 
+async function loadConnectionStats() {
+  const res = await fetch("http://localhost:5136/api/connections/stats", {
+    headers: authHeaders(),
+  });
+
+  if (!res.ok) return;
+
+  const data = await res.json();
+  document.getElementById("connections-count").innerText = data.connections;
+  document.getElementById("pending-count").innerText = data.pending;
+}
+
+function goToConnections() {
+  window.location.href = "/pages/connections.html";
+}
+
+// -------------------------------
+// EDIT PROFILE
+// -------------------------------
 function toggleEditProfile() {
-  const fields = [
-    "profile-name",
+  // ❌ DO NOT ENABLE NAME FIELD
+  [
     "profile-bio",
     "profile-company",
     "profile-position",
-    "profile-batch"
-  ];
+    "profile-batch",
+  ].forEach((id) => (document.getElementById(id).disabled = false));
 
-  fields.forEach(id => {
-    document.getElementById(id).disabled = false;
-  });
-
-  document.querySelectorAll('input[name="profile-domains"]').forEach(box => {
-    box.disabled = false;
-  });
+  document
+    .querySelectorAll('input[name="profile-domains"]')
+    .forEach((box) => (box.disabled = false));
 
   document.getElementById("edit-profile-btn").classList.add("hidden");
   document.getElementById("save-profile-btn").classList.remove("hidden");
 }
 
+// -------------------------------
+// SAVE PROFILE ✅ FIXED
+// -------------------------------
 async function saveProfile() {
-  const name = document.getElementById("profile-name").value.trim();
   const bio = document.getElementById("profile-bio").value.trim();
   const company = document.getElementById("profile-company").value.trim();
   const position = document.getElementById("profile-position").value.trim();
@@ -105,35 +144,39 @@ async function saveProfile() {
 
   const domains = Array.from(
     document.querySelectorAll('input[name="profile-domains"]:checked')
-  ).map(b => b.value);
+  ).map((b) => b.value);
 
-  if (!name || !bio || domains.length === 0) {
-    alert("Name, bio & at least one domain are required.");
+  if (!bio || domains.length === 0) {
+    alert("Bio and at least one domain are required");
     return;
   }
 
   try {
     const res = await fetch(`${API_BASE}/profile`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders(),
       body: JSON.stringify({
-        name,
         bio,
         company,
         position,
         batchYear,
-        domains
-      })
+        domains,
+      }),
     });
 
-    if (!res.ok) throw new Error("Save error");
-    alert("Profile updated!");
-    window.location.href = "/pages/feed.html";
+    if (!res.ok) throw new Error("Save failed");
+
+    alert("Profile saved successfully!");
+    window.location.replace("/pages/feed.html");
 
   } catch (err) {
+    console.error(err);
     alert("Failed to save profile");
   }
 }
 
+// -------------------------------
+// EXPORTS
+// -------------------------------
 window.toggleEditProfile = toggleEditProfile;
 window.saveProfile = saveProfile;

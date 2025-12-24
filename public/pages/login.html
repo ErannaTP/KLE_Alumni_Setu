@@ -1,57 +1,25 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>Alumni Setu - Login</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <style>
-    body {
-      font-family: 'Inter', sans-serif;
-      background-color: #f5f6f5;
-    }
-  </style>
 </head>
-<body class="min-h-screen flex items-center justify-center">
-  <div class="bg-white shadow-lg rounded-xl p-8 w-full max-w-md border border-gray-200">
-    <h1 class="text-2xl font-bold text-indigo-900 mb-2 text-center">Alumni Setu</h1>
-    <p class="text-sm text-gray-500 mb-6 text-center">
-      Mock login for alumni · Use <b>test / test</b>
-    </p>
+<body class="bg-gray-900 text-white flex items-center justify-center h-screen">
 
-    <form onsubmit="mockLogin(event)" class="space-y-4">
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
-        <input
-          id="username"
-          type="text"
-          class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          placeholder="test"
-          required
-        />
-      </div>
+  <div class="bg-gray-800 p-6 rounded w-96">
+    <h2 class="text-2xl mb-4 font-bold">Login</h2>
 
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-        <input
-          id="password"
-          type="password"
-          class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          placeholder="test"
-          required
-        />
-      </div>
+    <input id="email" class="w-full p-2 mb-3 bg-gray-700 rounded" placeholder="Email">
+    <input id="password" type="password" class="w-full p-2 mb-4 bg-gray-700 rounded" placeholder="Password">
 
-      <button
-        type="submit"
-        class="w-full bg-indigo-900 text-white py-2 rounded-lg font-semibold hover:bg-indigo-800 transition"
-      >
-        Login
-      </button>
-    </form>
+    <button id="loginBtn" class="w-full bg-purple-600 p-2 rounded">
+      Login
+    </button>
+
+    <p id="err" class="text-red-400 mt-3"></p>
   </div>
 
-  <script src="../js/api.js"></script>
+  <!-- IMPORTANT -->
+  <script src="../js/login.js"></script>
 </body>
 </html>

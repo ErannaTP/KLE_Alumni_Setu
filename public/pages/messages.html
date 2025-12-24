@@ -1,5 +1,116 @@
-<script>
-  if (!localStorage.getItem("token")) {
-    window.location.href = "/pages/login.html";
-  }
-</script>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Messages</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.ably.io/lib/ably.min-1.js"></script>
+
+  <style>
+    body {
+      background: #0f0f14;
+      color: white;
+      font-family: Inter, sans-serif;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 260px;
+      background: rgba(22, 22, 27, 0.75);
+      backdrop-filter: blur(12px);
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .nav-button {
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-weight: 500;
+      color: #d0d0d0;
+      transition: 0.25s;
+      cursor: pointer;
+    }
+
+    .nav-button:hover {
+      background: rgba(255, 255, 255, 0.06);
+      color: white;
+      transform: translateX(4px);
+    }
+
+    .active-nav {
+      background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+      color: white !important;
+      box-shadow: 0 4px 14px rgba(140, 82, 255, 0.4);
+    }
+
+    /* Conversation panel */
+    .conversation-item {
+      padding: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      cursor: pointer;
+      transition: .25s;
+    }
+
+    .conversation-item:hover {
+      background: rgba(255,255,255,0.05);
+    }
+  </style>
+</head>
+
+<body class="h-screen flex overflow-hidden">
+
+  <!-- LEFT APP SIDEBAR (Navigation) -->
+  <div class="sidebar p-6 flex flex-col gap-4">
+    <div class="text-3xl font-bold mb-4">Alumni Setu</div>
+
+    <button class="nav-button" onclick="window.location.href='feed.html'">Home</button>
+    <button class="nav-button" onclick="window.location.href='profile.html'">Profile</button>
+    <button class="nav-button active-nav">Messages</button>
+    <button class="nav-button" onclick="window.location.href='connections.html'">Connections</button>
+  </div>
+
+  <!-- MAIN MESSAGING SECTION -->
+  <div class="flex flex-1">
+
+    <!-- LEFT: Conversations List -->
+    <div id="convoList"
+         class="w-80 border-r border-white/10 overflow-y-auto">
+      <div class="p-4 text-xl font-semibold">Chats</div>
+      <div id="conversationContainer"></div>
+    </div>
+
+    <!-- RIGHT: Chat Window -->
+    <div class="flex flex-col flex-1">
+
+      <!-- CHAT HEADER -->
+      <div id="chatHeader"
+           class="p-5 border-b border-white/10 flex items-center gap-3 bg-[#14141a]">
+        <div class="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center font-bold" id="chatUserAvatar">
+          ?
+        </div>
+        <div>
+          <div class="font-semibold text-lg" id="chatUserName">Select a chat</div>
+          <div class="text-sm text-gray-400" id="chatUserCompany"></div>
+        </div>
+      </div>
+
+      <!-- CHAT MESSAGES -->
+      <div id="chatMessages"
+           class="flex-1 overflow-y-auto p-6 space-y-3">
+      </div>
+
+      <!-- INPUT BAR -->
+      <div class="p-4 flex gap-2 border-t border-white/10 bg-[#14141a]">
+        <input id="msgInput"
+               placeholder="Type a message..."
+               class="flex-1 p-3 bg-[#1b1b23] rounded-xl text-white focus:outline-none">
+        <button onclick="sendMessage()"
+                class="px-6 py-3 bg-purple-600 rounded-xl">
+          Send
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="/js/messages.js"></script>
+</body>
+</html>

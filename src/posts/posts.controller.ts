@@ -8,40 +8,17 @@ import {
   Req,
   UploadedFile,
   UseInterceptors,
+  Delete,
+  Param,
 } from '@nestjs/common';
 import { PostsService } from './posts.service';
-import { PrismaService } from '../prisma/prisma.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 
 @Controller('posts')
 export class PostsController {
-  constructor(
-    private postsService: PostsService,
-    private prisma: PrismaService,
-  ) {}
-
-  // ALWAYS RETURNS a valid user ID
-  private async getUserId(): Promise<string> {
-    let user = await this.prisma.user.findFirst({
-      where: { email: 'mock@example.com' },
-    });
-
-    if (!user) {
-      user = await this.prisma.user.create({
-        data: {
-          email: 'mock@example.com',
-          passwordHash: 'dummyhash',
-          name: 'Test Alumni',
-          domains: [],
-          emailVerified: true,
-        },
-      });
-    }
-
-    return user.id;
-  }
+  constructor(private postsService: PostsService) {}
 
   @Get()
   async getFeed(
@@ -51,10 +28,8 @@ export class PostsController {
     @Query('skip') skip: string,
     @Query('take') take: string,
   ) {
-    const userId = await this.getUserId();
-
     return this.postsService.getFeed(
-      userId,
+      req.user.userId,
       domain || null,
       hashtag || null,
       Number(skip || 0),
@@ -64,10 +39,8 @@ export class PostsController {
 
   @Post()
   async createPost(@Req() req: any, @Body() body: any) {
-    const userId = await this.getUserId();
-
     return this.postsService.createPost({
-      userId,
+      userId: req.user.userId,
       title: body.title,
       content: body.content,
       domain: body.domain || null,
@@ -77,20 +50,28 @@ export class PostsController {
   }
 
   @Post('like')
-  async likePost(@Body() body: any) {
-    const userId = await this.getUserId();
-    return this.postsService.likePost(userId, body.postId);
+  async likePost(@Req() req: any, @Body() body: any) {
+    return this.postsService.likePost(req.user.userId, body.postId);
   }
 
   @Post('comment')
-  async commentOnPost(@Body() body: any) {
-    const userId = await this.getUserId();
-    return this.postsService.commentOnPost(userId, body.postId, body.text);
+  async commentOnPost(@Req() req: any, @Body() body: any) {
+    return this.postsService.commentOnPost(
+      req.user.userId,
+      body.postId,
+      body.text,
+    );
   }
 
   @Get('comments')
   async getComments(@Query('postId') postId: string) {
     return this.postsService.getPostComments(postId);
+  }
+
+  // ✅ DELETE POST (OWNER ONLY)
+  @Delete(':id')
+  async deletePost(@Req() req: any, @Param('id') postId: string) {
+    return this.postsService.deletePost(req.user.userId, postId);
   }
 
   @Post('upload-image')
@@ -99,8 +80,7 @@ export class PostsController {
       storage: diskStorage({
         destination: './public/uploads',
         filename: (_, file, cb) => {
-          const random = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-          cb(null, random + extname(file.originalname));
+          cb(null, `${Date.now()}${extname(file.originalname)}`);
         },
       }),
     }),

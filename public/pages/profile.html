@@ -138,6 +138,7 @@
     <button class="nav-button" onclick="window.location.href='feed.html'">Home</button>
     <button class="nav-button active-nav">Profile</button>
     <button class="nav-button" onclick="window.location.href='messages.html'">Messages</button>
+    <button class="nav-button" onclick="window.location.href='connections.html'">Connections</button>
   </div>
 
   <!-- Main Section -->
@@ -167,6 +168,20 @@
             <div id="profile-domains" class="text-sm text-gray-400 mt-1"></div>
           </div>
         </div>
+        <div class="flex gap-6 mt-4">
+    <div class="text-center">
+      <div id="connections-count" class="text-xl font-bold">0</div>
+      <div class="text-gray-500 text-sm">Connections</div>
+    </div>
+
+    <div class="text-center cursor-pointer"
+        onclick="goToConnections()">
+      <div id="pending-count"
+         class="text-xl font-bold text-indigo-600">0</div>
+      <div class="text-gray-500 text-sm">Pending</div>
+    </div>
+  </div>
+</div>
 
         <!-- Grid Inputs -->
         <div class="grid grid-cols-1 gap-5">

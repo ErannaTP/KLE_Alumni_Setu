@@ -1,4 +1,38 @@
-const API_BASE = "http://localhost:4000/api";
+// 🔐 reuse token from feed.html (DO NOT redeclare)
+let loggedInUserId = null;
+
+async function resolveLoggedInUser() {
+  const res = await fetch("http://localhost:5136/api/user/profile", {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
+    },
+  });
+
+  if (!res.ok) {
+    window.location.replace("/pages/login.html");
+    return;
+  }
+
+  const user = await res.json();
+  loggedInUserId = user.id;
+
+  console.log("Resolved loggedInUserId =", loggedInUserId);
+}
+
+const authToken = localStorage.getItem("token");
+
+console.log("Feed page loggedInUserId =", loggedInUserId);
+
+if (!authToken) {
+  window.location.replace("/pages/login.html");
+}
+
+const API_BASE = "http://localhost:5136/api";
+
+const authHeaders = () => ({
+  "Content-Type": "application/json",
+  Authorization: `Bearer ${authToken}`,
+});
 
 const feedContainer = document.getElementById("postFeed");
 const loadingEl = document.getElementById("loading");
@@ -18,6 +52,7 @@ let notifications = [];
 // -----------------------
 function renderPost(post) {
   const div = document.createElement("div");
+  div.id = `post-${post.id}`;
   div.className =
     "post-card bg-white p-6 rounded-lg shadow-md border border-gray-300";
 
@@ -25,15 +60,12 @@ function renderPost(post) {
   const initial = userName.charAt(0).toUpperCase();
 
   const domain = post.domain || "General";
-  const badgeClass =
-    domain === "New Hiring Opportunity"
-      ? "hiring"
-      : domain === "General" || domain === "Success Story"
-      ? "general"
-      : "domain";
 
   const hashtagsHtml = (post.hashtags || [])
-    .map(t => `<span class="hashtag" onclick="searchByHashtag('#${t}')">#${t}</span>`)
+    .map(
+      t =>
+        `<span class="hashtag" onclick="searchByHashtag('#${t}')">#${t}</span>`
+    )
     .join("");
 
   const createdAt = new Date(post.createdAt).toLocaleString();
@@ -41,33 +73,63 @@ function renderPost(post) {
   let imageHtml = "";
   if (post.imageUrls?.length > 0) {
     imageHtml = `
-      <img src="${post.imageUrls[0]}" 
-           class="w-40 h-40 object-cover rounded-lg mb-4 border border-gray-300" 
+      <img src="${post.imageUrls[0]}"
+           class="w-40 h-40 object-cover rounded-lg mb-4 border border-gray-300"
            alt="Post Image" />
     `;
   }
 
   div.innerHTML = `
-    <div class="flex items-center gap-4 mb-4">
-      <div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-900 font-medium">
-        ${initial}
-      </div>
-      <div>
-        <div class="font-semibold text-gray-800">
-          ${userName}
-          <span class="user-badge ml-2">Alumni</span>
+    <div class="flex items-start justify-between mb-4">
+      <div class="flex items-center gap-4">
+        <div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-900 font-medium">
+          ${initial}
         </div>
-        <div class="text-sm text-gray-500">
-          <span class="domain-tag ${badgeClass}">${domain}</span>
-          • ${createdAt}
-          ${hashtagsHtml ? `<span class="ml-2 inline-flex gap-1">${hashtagsHtml}</span>` : ""}
+
+        <div>
+          <div class="font-semibold text-gray-800 flex items-center gap-2">
+            ${userName}
+            <span class="user-badge ml-1">Alumni</span>
+          </div>
+
+          <div class="text-sm text-gray-500">
+            <span class="domain-tag">${domain}</span>
+            • ${createdAt}
+            ${hashtagsHtml ? `<span class="ml-2 inline-flex gap-1">${hashtagsHtml}</span>` : ""}
+          </div>
         </div>
       </div>
+
+      ${
+        loggedInUserId && String(post.user.id) === String(loggedInUserId)
+          ? `
+            <div class="relative">
+              <button onclick="togglePostMenu('${post.id}')"
+                      class="text-xl px-2 py-1 hover:bg-gray-100 rounded">
+                ⋮
+              </button>
+
+              <div id="post-menu-${post.id}"
+                  class="hidden absolute right-0 mt-2 w-32 bg-white border rounded-lg shadow-lg z-50">
+                <button onclick="confirmDeletePost('${post.id}')"
+                        class="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50">
+                  Delete
+                </button>
+              </div>
+            </div>
+          `
+          : ""
+      }
     </div>
 
-    <p class="text-gray-700 mb-2 font-medium">${post.title || "Untitled Post"}</p>
 
-    <p class="text-gray-600 mb-4">${convertHashtags(post.content || "")}</p>
+    <p class="text-gray-700 mb-2 font-medium">
+      ${post.title || "Untitled Post"}
+    </p>
+
+    <p class="text-gray-600 mb-4">
+      ${convertHashtags(post.content || "")}
+    </p>
 
     ${imageHtml}
 
@@ -83,8 +145,8 @@ function renderPost(post) {
       </button>
     </div>
 
-    <div id="comments-${post.id}" 
-         class="hidden mt-3 pt-3 border-t border-gray-200 bg-gray-50 rounded-md">
+    <div id="comments-${post.id}"
+        class="hidden mt-3 pt-3 border-t border-gray-200 bg-gray-50 rounded-md">
       <div id="comments-list-${post.id}" class="mb-3"></div>
 
       <textarea id="comment-input-${post.id}"
@@ -96,6 +158,7 @@ function renderPost(post) {
       </button>
     </div>
   `;
+
 
   feedContainer.appendChild(div);
 }
@@ -114,13 +177,13 @@ async function loadFeed() {
     if (currentDomain) url += `&domain=${encodeURIComponent(currentDomain)}`;
     if (currentHashtag) url += `&hashtag=${encodeURIComponent(currentHashtag)}`;
 
-    const res = await fetch(url);
-    const posts = await res.json();
+    const res = await fetch(url, { headers: authHeaders() });
+    if (!res.ok) throw new Error("Unauthorized");
 
+    const posts = await res.json();
     posts.forEach(renderPost);
 
     skip += posts.length;
-
     if (posts.length < take) loadingEl.textContent = "No more posts.";
   } catch (err) {
     console.error(err);
@@ -131,6 +194,7 @@ async function loadFeed() {
   loadingEl.style.display = "none";
 }
 
+await resolveLoggedInUser();
 loadFeed();
 
 window.addEventListener("scroll", () => {
@@ -139,148 +203,195 @@ window.addEventListener("scroll", () => {
   }
 });
 
-// -----------------------
-// LIKE
-// -----------------------
-async function toggleLike(postId, btnEl) {
-  try {
-    const res = await fetch(`${API_BASE}/posts/like`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ postId })
-    });
 
-    const data = await res.json();
+async function deletePost(postId) {
+  const token = localStorage.getItem("token");
 
-    document.getElementById(`${postId}-likes`).textContent = data.likesCount;
-    btnEl.style.color = data.liked ? "#dc2626" : "#4b5563";
+  const res = await fetch(`${API_BASE}/posts/${postId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
 
-  } catch (err) {
-    console.error(err);
+  if (!res.ok) {
+    alert("Failed to delete post");
+    return;
   }
+
+  // Remove post from DOM immediately
+  const postEl = document.getElementById(`post-${postId}`);
+  if (postEl) postEl.remove();
+}
+
+function confirmDeletePost(postId) {
+  const ok = confirm("Are you sure you want to delete this post?");
+  if (!ok) return;
+
+  deletePost(postId);
+}
+
+/// -----------------------
+// LIKE (FIXED)
+// -----------------------
+async function toggleLike(postId) {
+  const res = await fetch(`${API_BASE}/posts/like`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({ postId }),
+  });
+
+  if (!res.ok) return;
+
+  const { liked } = await res.json();
+  const countSpan = document.getElementById(`${postId}-likes`);
+
+  let count = Number(countSpan.textContent) || 0;
+  countSpan.textContent = liked ? count + 1 : Math.max(count - 1, 0);
+}
+
+function togglePostMenu(postId) {
+  const menu = document.getElementById(`post-menu-${postId}`);
+  if (!menu) return;
+
+  menu.classList.toggle("hidden");
 }
 
 // -----------------------
-// CREATE POST
+// CREATE POST (WITH FORM CLEAR FIX)
 // -----------------------
 async function uploadPost() {
-  const title = document.getElementById("postTitle").value;
-  const content = document.getElementById("postContent").value;
-  const rawTags = document.getElementById("postHashtags").value;
-  const domain = document.getElementById("postDomain").value;
+  const titleEl = document.getElementById("postTitle");
+  const contentEl = document.getElementById("postContent");
+  const tagsEl = document.getElementById("postHashtags");
+  const domainEl = document.getElementById("postDomain");
   const imageInput = document.getElementById("postImage");
+
+  const title = titleEl.value.trim();
+  const content = contentEl.value.trim();
+  const rawTags = tagsEl.value.trim();
+  const domain = domainEl.value;
 
   if (!content) return alert("Content required");
   if (!domain) return alert("Select a domain");
 
-  let hashtags = [];
-  if (rawTags.trim()) {
-    hashtags = rawTags
-      .split(/[,\s]+/)
-      .map(t => t.replace("#", "").trim())
-      .filter(Boolean);
-  }
+  const hashtags = rawTags
+    ? rawTags
+        .split(/[,\s]+/)
+        .map(t => t.replace("#", "").trim())
+        .filter(Boolean)
+    : [];
 
   let imageUrls = [];
+
+  // Upload image if present
   if (imageInput.files.length > 0) {
     const form = new FormData();
     form.append("image", imageInput.files[0]);
 
-    const res = await fetch(`${API_BASE}/posts/upload-image`, {
+    const imgRes = await fetch(`${API_BASE}/posts/upload-image`, {
       method: "POST",
-      body: form
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: form,
     });
 
-    const data = await res.json();
-    imageUrls.push(data.url);
+    if (!imgRes.ok) return alert("Image upload failed");
+
+    const imgData = await imgRes.json();
+    imageUrls.push(imgData.url);
   }
 
+  // Create post
   const res = await fetch(`${API_BASE}/posts`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(),
     body: JSON.stringify({
       title,
       content,
       domain,
       hashtags,
-      imageUrls
-    })
+      imageUrls,
+    }),
   });
 
   if (!res.ok) return alert("Failed to post");
 
-  // Reset
-  document.getElementById("postTitle").value = "";
-  document.getElementById("postContent").value = "";
-  document.getElementById("postHashtags").value = "";
-  document.getElementById("postDomain").value = "";
-  document.getElementById("postImage").value = "";
+  // -----------------------
+  // ✅ CLEAR FORM (THIS WAS MISSING)
+  // -----------------------
+  titleEl.value = "";
+  contentEl.value = "";
+  tagsEl.value = "";
+  domainEl.selectedIndex = 0;
+  imageInput.value = "";
 
-  // Reload
+  // -----------------------
+  // REFRESH FEED
+  // -----------------------
   feedContainer.innerHTML = "";
   skip = 0;
   loadFeed();
 }
 
 // -----------------------
-// COMMENTS
+// COMMENTS (🔥 FIXED)
 // -----------------------
+async function submitComment(postId) {
+  const input = document.getElementById(`comment-input-${postId}`);
+  const text = input.value.trim();
+  if (!text) return;
+
+  const res = await fetch(`${API_BASE}/posts/comment`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({ postId, text }),
+  });
+
+  if (!res.ok) return;
+
+  input.value = "";
+
+  const countSpan = document.getElementById(`${postId}-comments`);
+  countSpan.textContent = Number(countSpan.textContent) + 1;
+
+  openComments(postId);
+}
+
 async function openComments(postId) {
   const box = document.getElementById(`comments-${postId}`);
   box.classList.toggle("hidden");
-
   if (box.classList.contains("hidden")) return;
 
-  const res = await fetch(`${API_BASE}/posts/comments?postId=${postId}`);
-  const comments = await res.json();
+  const res = await fetch(
+    `${API_BASE}/posts/comments?postId=${postId}`,
+    { headers: authHeaders() }
+  );
 
-  const div = document.getElementById(`comments-list-${postId}`);
-  div.innerHTML = "";
+  const comments = await res.json();
+  const list = document.getElementById(`comments-list-${postId}`);
+  list.innerHTML = "";
 
   comments.forEach(c => {
-    div.innerHTML += `
-      <div class="mb-2 p-2 bg-white border rounded">
+    list.innerHTML += `
+      <div class="border p-2 rounded mb-2">
         <div class="font-semibold">${c.user.name}</div>
         <p>${c.text}</p>
-        <p class="text-xs text-gray-500">${new Date(c.createdAt).toLocaleString()}</p>
       </div>
     `;
   });
 }
 
-async function submitComment(postId) {
-  const input = document.getElementById(`comment-input-${postId}`);
-  const text = input.value.trim();
-  if (!text) return alert("Empty comment");
-
-  const res = await fetch(`${API_BASE}/posts/comment`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ postId, text })
-  });
-
-  if (!res.ok) {
-    return alert("Failed to add comment");
-  }
-
-  // Clear box
-  input.value = "";
-
-  // 🔥 Refresh comments list without closing
-  openComments(postId);
-
-  // 🔥 Manually increment visible comment count
-  const countEl = document.getElementById(`${postId}-comments`);
-  countEl.textContent = Number(countEl.textContent) + 1;
-}
-
 // -----------------------
-// HASHTAGS
+// HASHTAGS & FILTERS
 // -----------------------
 function convertHashtags(text) {
-  return text.replace(/#(\w+)/g, (m, t) => {
-    return `<span class="hashtag" onclick="searchByHashtag('#${t}')">#${t}</span>`;
-  });
+  return text.replace(
+    /#(\w+)/g,
+    (_, t) =>
+      `<span class="hashtag" onclick="searchByHashtag('#${t}')">#${t}</span>`
+  );
 }
 
 function searchByHashtag(hash) {
@@ -303,3 +414,14 @@ function searchPosts() {
   skip = 0;
   loadFeed();
 }
+
+window.uploadPost = uploadPost;
+window.togglePostMenu = togglePostMenu;
+window.confirmDeletePost = confirmDeletePost;
+window.deletePost = deletePost;
+window.toggleLike = toggleLike;
+window.openComments = openComments;
+window.submitComment = submitComment;
+window.searchByHashtag = searchByHashtag;
+window.filterPosts = filterPosts;
+window.searchPosts = searchPosts;

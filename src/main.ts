@@ -6,16 +6,16 @@ async function bootstrap() {
 
   // CORS for frontend
   app.enableCors({
-    origin: 'http://localhost:3000',
+    origin: 'http://localhost:5098',
     credentials: true,
   });
 
   // 🔥 THIS IS THE IMPORTANT FIX
   app.setGlobalPrefix('api');
 
-  await app.listen(4000);
-  console.log('🚀 Backend running at http://localhost:4000');
-  console.log('📌 API available at http://localhost:4000/api/... endpoints');
+  await app.listen(5136);
+  console.log('🚀 Backend running at http://localhost:5136');
+  console.log('📌 API available at http://localhost:5136/api/... endpoints');
 }
 
 bootstrap();

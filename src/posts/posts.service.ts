@@ -1,99 +1,35 @@
 // src/posts/posts.service.ts
-import { Injectable } from '@nestjs/common';
+import { Injectable, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class PostsService {
   constructor(private prisma: PrismaService) {}
 
-  async getFeed(
-    userId: string | null,
-    filterDomain: string | null,
-    hashtag: string | null,
-    skip = 0,
-    take = 20,
-  ) {
-    let userDomains: string[] = [];
-
-    if (userId) {
-      const user = await this.prisma.user.findUnique({
-        where: { id: userId },
-        select: { domains: true },
-      });
-      userDomains = user?.domains || [];
-    }
-
-    // HASHTAG MODE
-    if (hashtag) {
-      const posts = await this.prisma.post.findMany({
-        where: { hashtags: { has: hashtag } },
-        include: { user: true, comments: true, likes: true },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take,
-      });
-      return this.format(posts, userId);
-    }
-
-    // DOMAIN FILTER MODE
-    if (filterDomain) {
-      const posts = await this.prisma.post.findMany({
-        where: { domain: filterDomain },
-        include: { user: true, comments: true, likes: true },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take,
-      });
-      return this.format(posts, userId);
-    }
-
-    // SMART FEED ORDER (preferred domains first)
-    const priority = await this.prisma.post.findMany({
-      where: { domain: { in: userDomains } },
+  async getFeed(userId: string | null, domain: string | null, hashtag: string | null, skip = 0, take = 20) {
+    const posts = await this.prisma.post.findMany({
+      where: {
+        ...(domain ? { domain } : {}),
+        ...(hashtag ? { hashtags: { has: hashtag } } : {}),
+      },
       include: { user: true, comments: true, likes: true },
       orderBy: { createdAt: 'desc' },
+      skip,
+      take,
     });
 
-    const secondary = await this.prisma.post.findMany({
-      where: { domain: { notIn: userDomains } },
-      include: { user: true, comments: true, likes: true },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    const all = [...priority, ...secondary]; // ✅ fixed
-    const page = all.slice(skip, skip + take);
-
-    return this.format(page, userId);
-  }
-
-  private format(posts: any[], userId: string | null) {
-    return posts.map((post) => ({
-      ...post,
-      likesCount: post.likes.length,
-      commentsCount: post.comments.length,
-      userLiked: userId
-        ? post.likes.some((l: any) => l.userId === userId)
-        : false,
+    return posts.map(p => ({
+      ...p,
+      likesCount: p.likes.length,
+      commentsCount: p.comments.length,
+      userLiked: userId ? p.likes.some(l => l.userId === userId) : false,
     }));
   }
 
-  async createPost(data: {
-    userId: string;
-    title?: string;
-    content: string;
-    domain?: string;
-    hashtags?: string[];
-    imageUrls?: string[];
-  }) {
+  async createPost(data: any) {
     return this.prisma.post.create({
-      data: {
-        userId: data.userId,
-        title: data.title || null,
-        content: data.content,
-        domain: data.domain || null,
-        hashtags: data.hashtags || [],
-        imageUrls: data.imageUrls || [],
-      },
+      data,
+      include: { user: true },
     });
   }
 
@@ -106,13 +42,11 @@ export class PostsService {
       await this.prisma.like.delete({
         where: { userId_postId: { userId, postId } },
       });
-      const count = await this.prisma.like.count({ where: { postId } });
-      return { liked: false, likesCount: count };
+      return { liked: false };
     }
 
     await this.prisma.like.create({ data: { userId, postId } });
-    const count = await this.prisma.like.count({ where: { postId } });
-    return { liked: true, likesCount: count };
+    return { liked: true };
   }
 
   async commentOnPost(userId: string, postId: string, text: string) {
@@ -128,5 +62,22 @@ export class PostsService {
       include: { user: true },
       orderBy: { createdAt: 'asc' },
     });
+  }
+
+  // ✅ DELETE POST (OWNER ONLY)
+  async deletePost(userId: string, postId: string) {
+    const post = await this.prisma.post.findUnique({
+      where: { id: postId },
+    });
+
+    if (!post || post.userId !== userId) {
+      throw new ForbiddenException('Not allowed');
+    }
+
+    await this.prisma.comment.deleteMany({ where: { postId } });
+    await this.prisma.like.deleteMany({ where: { postId } });
+    await this.prisma.post.delete({ where: { id: postId } });
+
+    return { success: true };
   }
 }
