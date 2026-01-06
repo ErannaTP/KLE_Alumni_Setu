@@ -1,15 +1,11 @@
 // public/js/profile.js
 
-const API_BASE = "http://localhost:5136/api/user";
+const API_BASE = "http://localhost:5136/api";
 
 // -------------------------------
-// AUTH CHECK
+// AUTH
 // -------------------------------
 const token = localStorage.getItem("token");
-
-if (!token) {
-  window.location.href = "/pages/login.html";
-}
 
 function authHeaders() {
   return {
@@ -21,9 +17,20 @@ function authHeaders() {
 // -------------------------------
 // DOM READY
 // -------------------------------
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  const role = localStorage.getItem("role");
+
+  if (!token || !role) {
+    window.location.href = "/pages/alumni-login.html";
+    return;
+  }
+
+  // Domains must exist for BOTH
   renderDomainCheckboxes();
-  loadProfile();
+
+  await loadProfile();
+  setLoggedInRoleBadge();
+
   loadConnectionStats();
 });
 
@@ -45,11 +52,13 @@ const availableDomains = [
 
 function renderDomainCheckboxes() {
   const box = document.getElementById("profile-domains-checkboxes");
+  if (!box) return;
+
   box.innerHTML = "";
 
-  availableDomains.forEach((d) => {
+  availableDomains.forEach(d => {
     box.innerHTML += `
-      <label class="domain-checkbox-label flex items-center gap-2">
+      <label class="flex items-center gap-2">
         <input type="checkbox" name="profile-domains" value="${d}" disabled />
         ${d}
       </label>
@@ -62,117 +71,160 @@ function renderDomainCheckboxes() {
 // -------------------------------
 async function loadProfile() {
   try {
-    const res = await fetch(`${API_BASE}/profile`, {
-      headers: authHeaders(),
-    });
+    const role = localStorage.getItem("role");
 
+    const endpoint =
+      role === "STUDENT"
+        ? `${API_BASE}/student/profile`
+        : `${API_BASE}/user/profile`;
+
+    const res = await fetch(endpoint, { headers: authHeaders() });
     if (!res.ok) throw new Error("Unauthorized");
 
     const user = await res.json();
 
-    // Avatar
-    document.getElementById("profile-avatar").textContent =
+    // Basic info
+    document.getElementById("profile-avatar").innerText =
       (user.name || "U")[0].toUpperCase();
 
-    // Display name (LOCKED)
     document.getElementById("profile-name-display").innerText = user.name;
-
-    // Inputs
     document.getElementById("profile-name").value = user.name || "";
     document.getElementById("profile-bio").value = user.bio || "";
-    document.getElementById("profile-company").value = user.company || "";
-    document.getElementById("profile-position").value = user.position || "";
     document.getElementById("profile-batch").value = user.batchYear || "";
 
-    // Domains
+    // Domains (BOTH)
     const domains = user.domains || [];
+    document
+      .querySelectorAll('input[name="profile-domains"]')
+      .forEach(box => {
+        box.checked = domains.includes(box.value);
+      });
 
-    document.querySelectorAll('input[name="profile-domains"]').forEach((box) => {
-      box.checked = domains.includes(box.value);
-    });
-
+    if (role === "STUDENT") {
+      ["profile-company", "profile-position"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.closest("div").style.display = "none";
+      });
+    } else {
+      document.getElementById("profile-company").value = user.company || "";
+      document.getElementById("profile-position").value = user.position || "";
+    }
   } catch (err) {
     console.error(err);
     alert("Error loading profile");
   }
 }
 
-async function loadConnectionStats() {
-  const res = await fetch("http://localhost:5136/api/connections/stats", {
-    headers: authHeaders(),
+// -------------------------------
+// REMOVE STUDENT FIELDS
+// -------------------------------
+function removeStudentForbiddenFields() {
+  ["profile-company", "profile-position"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.closest("div")?.remove();
   });
-
-  if (!res.ok) return;
-
-  const data = await res.json();
-  document.getElementById("connections-count").innerText = data.connections;
-  document.getElementById("pending-count").innerText = data.pending;
-}
-
-function goToConnections() {
-  window.location.href = "/pages/connections.html";
 }
 
 // -------------------------------
 // EDIT PROFILE
 // -------------------------------
 function toggleEditProfile() {
-  // ❌ DO NOT ENABLE NAME FIELD
-  [
-    "profile-bio",
-    "profile-company",
-    "profile-position",
-    "profile-batch",
-  ].forEach((id) => (document.getElementById(id).disabled = false));
+  const role = localStorage.getItem("role");
 
+  ["profile-bio", "profile-batch"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = false;
+  });
+
+  // Domains editable for BOTH
   document
     .querySelectorAll('input[name="profile-domains"]')
-    .forEach((box) => (box.disabled = false));
+    .forEach(box => (box.disabled = false));
+
+  if (role === "ALUMNI") {
+    ["profile-company", "profile-position"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.disabled = false;
+    });
+  }
 
   document.getElementById("edit-profile-btn").classList.add("hidden");
   document.getElementById("save-profile-btn").classList.remove("hidden");
 }
 
 // -------------------------------
-// SAVE PROFILE ✅ FIXED
+// SAVE PROFILE
 // -------------------------------
 async function saveProfile() {
-  const bio = document.getElementById("profile-bio").value.trim();
-  const company = document.getElementById("profile-company").value.trim();
-  const position = document.getElementById("profile-position").value.trim();
-  const batchYear = document.getElementById("profile-batch").value.trim();
-
-  const domains = Array.from(
-    document.querySelectorAll('input[name="profile-domains"]:checked')
-  ).map((b) => b.value);
-
-  if (!bio || domains.length === 0) {
-    alert("Bio and at least one domain are required");
-    return;
-  }
-
   try {
-    const res = await fetch(`${API_BASE}/profile`, {
+    const role = localStorage.getItem("role");
+
+    const endpoint =
+      role === "STUDENT"
+        ? `${API_BASE}/student/profile`
+        : `${API_BASE}/user/profile`;
+
+    const payload = {
+      bio: document.getElementById("profile-bio").value,
+      batchYear: document.getElementById("profile-batch").value,
+      domains: Array.from(
+        document.querySelectorAll('input[name="profile-domains"]:checked')
+      ).map(b => b.value),
+    };
+
+    if (role === "ALUMNI") {
+      payload.company = document.getElementById("profile-company").value;
+      payload.position = document.getElementById("profile-position").value;
+    }
+
+    // VALIDATION: Bio + at least 2 domains required
+    if (!payload.bio || payload.domains.length < 2) {
+      alert("Please complete your profile:\n- Add a Bio\n- Select at least 2 Domains");
+      return;
+    }
+
+    const res = await fetch(endpoint, {
       method: "POST",
       headers: authHeaders(),
-      body: JSON.stringify({
-        bio,
-        company,
-        position,
-        batchYear,
-        domains,
-      }),
+      body: JSON.stringify(payload),
     });
 
-    if (!res.ok) throw new Error("Save failed");
+    if (!res.ok) throw new Error("Unauthorized");
 
-    alert("Profile saved successfully!");
-    window.location.replace("/pages/feed.html");
+    alert("Profile saved successfully");
+    window.location.href = "/pages/feed.html";
 
+    if (role === "ALUMNI") {
+      window.location.href = "/pages/feed.html";
+    }
   } catch (err) {
     console.error(err);
     alert("Failed to save profile");
   }
+}
+
+// -------------------------------
+// HEADER ROLE BADGE
+// -------------------------------
+function setLoggedInRoleBadge() {
+  const role = localStorage.getItem("role");
+  const el = document.getElementById("logged-role");
+  if (!el) return;
+  el.innerText =
+    role === "STUDENT" ? "Logged in as Student" : "Logged in as Alumni";
+}
+
+// -------------------------------
+// CONNECTION STATS (ALUMNI ONLY)
+// -------------------------------
+async function loadConnectionStats() {
+  const res = await fetch(`${API_BASE}/connections/stats`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) return;
+  const data = await res.json();
+  document.getElementById("connections-count").innerText = data.connections;
+  document.getElementById("pending-count").innerText = data.pending;
 }
 
 // -------------------------------

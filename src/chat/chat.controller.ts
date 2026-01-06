@@ -22,16 +22,16 @@ export class ChatController {
 
   // ---------------- ABLY TOKEN ----------------
   @Get("ably-token")
-  async getAblyToken(@Req() req: Request) {
-    const userId = this.me(req);
+  async ablyToken(@Req() req: Request) {
+    const userId = (req as any).user.userId;
 
-    const ably = new Ably.Rest(process.env.ABLY_API_KEY!);
-
-    const tokenRequest = await ably.auth.createTokenRequest({
-      clientId: userId, // IMPORTANT: ties socket to user
+    const ably = new Ably.Rest({
+      key: process.env.ABLY_API_KEY!, // 🔐 backend only
     });
 
-    return tokenRequest;
+    return await ably.auth.createTokenRequest({
+      clientId: userId,
+    });
   }
 
   // ---------------- CONVERSATIONS ----------------
@@ -74,6 +74,35 @@ export class ChatController {
   // ---------------- MARK SEEN ----------------
   @Post(":id/seen")
   async seen(@Req() req: Request, @Param("id") id: string) {
-    return this.chat.markSeen(this.me(req), id);
+    const userId = (req as any).user.userId;
+    return this.chat.markSeen(userId, id);
+  }
+
+  @Post("conversation/:id/seen")
+  async markConversationSeen(
+    @Req() req: Request,
+    @Param("id") conversationId: string,
+  ) {
+    return this.chat.markConversationSeen(
+      (req as any).user.userId,
+      conversationId
+    );
+  }
+
+  @Post(":id/delivered")
+  async delivered(@Param("id") id: string) {
+    return this.chat.markDelivered(id);
+  }
+
+  // ---------------- DELETE MESSAGE ----------------
+  @Post(":id/delete")
+  async deleteMessage(
+    @Req() req: Request,
+    @Param("id") id: string,
+  ) {
+    return this.chat.deleteMessage(
+      (req as any).user.userId,
+      id
+    );
   }
 }

@@ -2,32 +2,81 @@ import { Injectable, NestMiddleware, UnauthorizedException } from '@nestjs/commo
 import { AuthService } from '../auth/auth.service';
 import type { Request, Response, NextFunction } from 'express';
 import type { JwtPayload } from 'jsonwebtoken';
+import { CanActivate, ExecutionContext } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { IS_PUBLIC_KEY } from './public.decorator';
 
 @Injectable()
 export class JwtAuthMiddleware implements NestMiddleware {
-  constructor(private auth: AuthService) {}
+  constructor(private auth: AuthService) { }
 
   use(req: Request & { user?: any }, _res: Response, next: NextFunction) {
+    const publicPaths = [
+      '/api/auth/login',
+      '/api/auth/signup',
+      '/api/auth/student/login',
+      '/api/auth/student/signup',
+      '/pages/',
+      '/assets/',
+      '/css/',
+      '/js/',
+      '/uploads/',
+      '/favicon.ico',
+      '/admin-login.html',
+      '/admin-dashboard.html',
+      '/api/auth/forgot-password',
+      '/api/auth/reset-password-otp',
+    ];
+
+    // 🔓 IMPORTANT: use originalUrl, not path
+    // Allow root '/' explicitly, or matching prefixes
+    if (req.originalUrl === '/' || publicPaths.some(p => req.originalUrl.startsWith(p))) {
+      return next();
+    }
+
     const header = req.headers['authorization'] as string | undefined;
 
-    if (!header) throw new UnauthorizedException('Missing token');
+    if (!header) {
+      throw new UnauthorizedException('Missing token');
+    }
 
     const token = header.replace('Bearer ', '');
     const payload = this.auth.verifyToken(token);
 
-    // verifyToken returns null | string | JwtPayload
-    if (!payload) throw new UnauthorizedException('Invalid token');
+    if (!payload || typeof payload !== 'object') {
+      throw new UnauthorizedException('Invalid token');
+    }
 
-    // If payload is an object and has userId, use it. Otherwise fail.
-    if (typeof payload === 'object' && payload !== null && 'userId' in payload) {
-      // payload is JwtPayload-ish; use a type-assertion for safety
-      req.user = { userId: (payload as JwtPayload & { userId?: string }).userId };
-      if (!req.user.userId) throw new UnauthorizedException('Invalid token payload');
-    } else {
-      // token payload isn't the shape we expect (string or missing userId)
+    const { userId, role } = payload as any;
+
+    if (!userId || !role) {
       throw new UnauthorizedException('Invalid token payload');
     }
 
+    // ✅ Attach BOTH userId and role
+    req.user = {
+      userId,
+      role,
+    };
+
+
     next();
+  }
+
+}
+
+export class JwtAuthGuard implements CanActivate {
+  constructor(private reflector: Reflector) { }
+
+  canActivate(context: ExecutionContext): boolean {
+    const isPublic = this.reflector.getAllAndOverride<boolean>(
+      IS_PUBLIC_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+
+    if (isPublic) return true;
+
+    const request = context.switchToHttp().getRequest();
+    return !!request.user;
   }
 }

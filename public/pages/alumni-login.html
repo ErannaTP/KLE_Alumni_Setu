@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Login | Alumni Setu</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="min-h-screen bg-[#0f172a] text-white">
+
+
+  <!-- HEADER -->
+  <header class="w-full px-10 py-5 flex items-center justify-between bg-gradient-to-r from-[#0b3c78] to-[#092c57]">
+    <div class="flex items-center gap-3">
+      <img
+        src="/assets/images/kle-logo.png"
+        class="h-10"
+        alt="KLE Logo"
+      />
+      <div>
+        <h1 class="text-lg font-semibold">KLE Alumni Setu</h1>
+        <p class="text-xs text-gray-300">
+          Connect students with mentors, jobs, and alumni opportunities
+        </p>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main 
+    class="flex items-center justify-center px-4 py-16 min-h-[calc(100vh-80px)]"
+    style="
+        background-image:
+        linear-gradient(
+            rgba(15, 23, 42, 0.65),
+            rgba(15, 23, 42, 0.65)
+        ),
+        url('/assets/images/kle-img.png');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+    "
+    >
+    
+    <div class="w-full max-w-xl bg-white text-[#0f172a] rounded-2xl shadow-2xl p-10">
+
+      <h2 class="text-3xl font-bold text-center mb-2">
+        Welcome Back
+      </h2>
+      <p class="text-center text-gray-500 mb-8">
+        Sign in to access your portal
+      </p>
+
+      <!-- TABS -->
+      <div class="flex mb-8 border rounded-lg overflow-hidden">
+        <button
+          id="studentTab"
+          onclick="switchTab('student')"
+          class="w-1/2 py-3 font-semibold bg-gray-100 text-gray-500"
+        >
+          🎓 Student Login
+        </button>
+
+        <button
+          id="alumniTab"
+          onclick="switchTab('alumni')"
+          class="w-1/2 py-3 font-semibold bg-[#0b3c78] text-white"
+        >
+          🎓 Alumni Login
+        </button>
+      </div>
+
+      <!-- STUDENT LOGIN -->
+    <div id="studentForm" class="hidden space-y-4">
+
+    <input
+        id="studentEmail"
+        type="email"
+        placeholder="01fe**bcs***@kletech.ac.in"
+        class="w-full p-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-[#0b3c78]"
+    />
+
+    <input
+        id="studentPassword"
+        type="password"
+        placeholder="Password"
+        class="w-full p-3 rounded-lg border uppercase focus:outline-none focus:ring-2 focus:ring-[#0b3c78]"
+    />
+
+    <p id="studentErr" class="text-red-500 text-sm"></p>
+
+    <button
+        onclick="studentLogin()"
+        class="w-full bg-[#0b3c78] hover:bg-[#092c57] text-white py-3 rounded-lg font-semibold transition"
+    >
+        Sign In as Student
+    </button>
+
+    <p class="text-xs text-center text-gray-500 mt-4">
+        Login using your official KLE student email
+    </p>
+    </div>
+
+      <!-- ALUMNI LOGIN -->
+      <div id="alumniForm" class="space-y-4">
+
+        <input
+          id="email"
+          type="email"
+          placeholder="Registered alumni email"
+          class="w-full p-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-[#0b3c78]"
+        />
+
+        <input
+          id="password"
+          type="password"
+          placeholder="USN (first-time password)"
+          class="w-full p-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-[#0b3c78]"
+        />
+
+        <p id="err" class="text-red-500 text-sm"></p>
+
+        <button
+          onclick="alumniLogin()"
+          class="w-full bg-[#0b3c78] hover:bg-[#092c57] text-white py-3 rounded-lg font-semibold transition"
+        >
+          Sign In as Alumni
+        </button>
+
+        <p class="text-xs text-center text-gray-500 mt-4">
+          First login will prompt you to set a new password.
+        </p>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    function switchTab(tab) {
+      document.getElementById("studentForm").classList.add("hidden");
+      document.getElementById("alumniForm").classList.add("hidden");
+
+      document.getElementById("studentTab").classList.remove("bg-[#0b3c78]", "text-white");
+      document.getElementById("alumniTab").classList.remove("bg-[#0b3c78]", "text-white");
+
+      if (tab === "alumni") {
+        document.getElementById("alumniForm").classList.remove("hidden");
+        document.getElementById("alumniTab").classList.add("bg-[#0b3c78]", "text-white");
+      } else {
+        document.getElementById("studentForm").classList.remove("hidden");
+        document.getElementById("studentTab").classList.add("bg-[#0b3c78]", "text-white");
+      }
+    }
+  </script>
+
+  <script src="/js/alumni-login.js"></script>
+  <script src="/js/student-login.js"></script>
+</body>
+</html>

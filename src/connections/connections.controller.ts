@@ -14,9 +14,19 @@ export class ConnectionsController {
   constructor(private readonly service: ConnectionsService) {}
 
   @Post('request')
-  sendRequest(@Req() req: any, @Body('receiverId') receiverId: string) {
-    return this.service.sendRequest(req.user.userId, receiverId);
+  sendRequest(
+    @Req() req: any,
+    @Body('receiverId') receiverId: string,
+    @Body('receiverType') receiverType: 'ALUMNI' | 'STUDENT',
+  ) {
+    return this.service.sendRequest(
+      req.user.userId,
+      req.user.role,      // 👈 senderType
+      receiverId,
+      receiverType,
+    );
   }
+
 
   @Get('requests')
     getPending(@Req() req: any) {

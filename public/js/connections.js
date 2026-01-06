@@ -69,7 +69,7 @@ async function searchUsers(query) {
           <p class="text-sm text-gray-500">${user.role}</p>
         </div>
         <button
-          onclick="sendRequest('${user.id}')"
+          onclick="sendRequest('${user.id}', '${user.role}')"
           class="text-sm bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">
           Connect
         </button>
@@ -79,11 +79,14 @@ async function searchUsers(query) {
 }
 
 /* ---------------- SEND REQUEST ---------------- */
-async function sendRequest(receiverId) {
+async function sendRequest(receiverId, receiverType) {
   const res = await fetch(`${API}/connections/request`, {
     method: "POST",
     headers,
-    body: JSON.stringify({ receiverId }),
+    body: JSON.stringify({
+      receiverId,
+      receiverType,
+    }),
   });
 
   if (!res.ok) {
@@ -110,9 +113,16 @@ async function loadRequests() {
   }
 
   data.forEach((req) => {
+    const sender = req.senderUser; // 👈 correct key from backend
+
+    if (!sender) return; // safety guard
+
     box.innerHTML += `
       <div class="flex justify-between items-center border rounded-lg p-4 bg-white shadow-sm">
-        <span class="font-medium">${req.sender.name}</span>
+        <div>
+          <p class="font-medium">${sender.name}</p>
+          <p class="text-sm text-gray-500">${sender.role}</p>
+        </div>
         <div class="flex gap-2">
           <button
             onclick="accept('${req.id}')"
@@ -128,6 +138,7 @@ async function loadRequests() {
       </div>
     `;
   });
+
 }
 
 /* ---------------- LOAD CONNECTIONS ---------------- */

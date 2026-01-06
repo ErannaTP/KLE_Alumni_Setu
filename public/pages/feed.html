@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -83,7 +84,7 @@
       border-radius: 22px;
       padding: 26px;
       border: 1px solid #eadcff;
-      box-shadow: 
+      box-shadow:
         0 8px 22px rgba(90, 20, 200, 0.08),
         0 2px 8px rgba(90, 20, 200, 0.05);
       transition: 0.3s ease;
@@ -91,7 +92,7 @@
 
     .post-card:hover {
       transform: translateY(-5px);
-      box-shadow: 
+      box-shadow:
         0 18px 35px rgba(90, 20, 200, 0.12),
         0 4px 14px rgba(90, 20, 200, 0.08);
     }
@@ -141,7 +142,9 @@
       box-shadow: inset 0 0 6px rgba(120, 45, 255, 0.15);
     }
 
-    textarea { resize: none; }
+    textarea {
+      resize: none;
+    }
 
     /* Loading text */
     #loading {
@@ -160,11 +163,17 @@
   <script>
     const FE_API_URL = "http://localhost:5136/api";
     const token = localStorage.getItem("token");
+    const role = localStorage.getItem("role");
 
-    if (!token) {
-      window.location.href = "/pages/login.html";
+    if (!token || !role) {
+      window.location.href = "/Final.html#login";
     } else {
-      fetch(FE_API_URL + "/user/profile", {
+      const endpoint =
+        role === "STUDENT"
+          ? FE_API_URL + "/student/profile"
+          : FE_API_URL + "/user/profile";
+
+      fetch(endpoint, {
         headers: {
           "Authorization": "Bearer " + token
         }
@@ -173,45 +182,94 @@
           if (!res.ok) throw new Error("Unauthorized");
           return res.json();
         })
-        .then(u => {
-          const incomplete =
-            !u ||
-            !u.bio ||
-            !Array.isArray(u.domains) ||
-            u.domains.length === 0;
-
-          if (incomplete) {
+        .then(profile => {
+          if (!profile.isProfileComplete) {
             window.location.href = "/pages/profile.html?setup=1";
           }
         })
         .catch(() => {
           localStorage.clear();
-          window.location.href = "/pages/login.html";
+          window.location.href = "/Final.html#login";
         });
+
+      // Load Events directly (since api.js loads later)
+      function loadEventsWidget() {
+        fetch("http://localhost:5136/api/user/events", {
+          headers: { "Authorization": "Bearer " + token }
+        })
+          .then(res => res.json())
+          .then(events => {
+            const container = document.getElementById('eventsList');
+            if (Array.isArray(events) && events.length > 0) {
+              container.innerHTML = events.slice(0, 3).map(evt => {
+                const isFull = evt.maxAttendees && evt.attendeeCount >= evt.maxAttendees;
+                const canRegister = !evt.isRegistered && !isFull;
+
+                let actionBtn = '';
+                if (evt.isRegistered) {
+                  actionBtn = '<span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">Registered</span>';
+                } else if (isFull) {
+                  actionBtn = '<span class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-medium">Full</span>';
+                } else {
+                  actionBtn = `<button onclick="registerEvent('${evt.id}')" class="text-xs bg-purple-600 text-white px-2 py-1 rounded hover:bg-purple-700 transition">Register</button>`;
+                }
+
+                return `
+                    <div class="p-3 bg-purple-50 rounded-xl border border-purple-100 hover:shadow-md transition cursor-pointer flex flex-col gap-2">
+                        <div class="flex justify-between items-start">
+                            <div class="text-xs font-bold text-purple-600">${new Date(evt.date).toLocaleDateString()}</div>
+                            ${actionBtn}
+                        </div>
+                        <div>
+                            <div class="font-semibold text-gray-800 text-sm">${evt.title}</div>
+                            <div class="text-xs text-gray-500 mt-1 truncate">${evt.location}</div>
+                        </div>
+                    </div>
+                `;
+              }).join('');
+            } else {
+              container.innerHTML = '<div class="text-sm text-gray-400">No upcoming events</div>';
+            }
+          })
+          .catch(err => {
+            console.error("Failed to load events", err);
+            document.getElementById('eventsList').innerHTML = '<div class="text-sm text-gray-400">Failed to load events</div>';
+          });
+      }
+
+      // Initial Load
+      loadEventsWidget();
+
+      // Global function for the button
+      window.registerEvent = function (eventId) {
+        api.registerForEvent(eventId).then(res => {
+          if (res) {
+            loadEventsWidget(); // Refresh list
+            alert("Successfully registered!");
+          }
+        });
+      };
     }
   </script>
+
 
   <!-- SIDEBAR (UNCHANGED STRUCTURE) -->
   <div class="sidebar w-64 bg-white shadow-lg p-6 flex flex-col gap-4">
     <div class="text-3xl font-semibold text-gray-900">Alumni Setu</div>
 
     <nav class="flex flex-col gap-2">
-      <button class="nav-button p-3 text-gray-700 active-nav"
-              onclick="window.location.href='feed.html'">
+      <button class="nav-button p-3 text-gray-700 active-nav" onclick="window.location.href='feed.html'">
         Home
       </button>
 
-      <button class="nav-button p-3 text-gray-700"
-              onclick="window.location.href='profile.html'">
+      <button class="nav-button p-3 text-gray-700" onclick="window.location.href='profile.html'">
         Profile
       </button>
 
-      <button class="nav-button p-3 text-gray-700"
-              onclick="window.location.href='messages.html'">
+      <button class="nav-button p-3 text-gray-700" onclick="window.location.href='messages.html'">
         Messages
       </button>
-      <button class="nav-button p-3 text-gray-700"
-              onclick="window.location.href='connections.html'">
+      <button class="nav-button p-3 text-gray-700" onclick="window.location.href='connections.html'">
         Connections
       </button>
     </nav>
@@ -224,6 +282,13 @@
         <span class="hashtag" onclick="searchByHashtag('#Career')">#Career</span>
       </div>
     </div>
+
+    <div class="mt-4">
+      <h3 class="text-lg font-semibold text-gray-800 mb-2">Upcoming Events</h3>
+      <div id="eventsList" class="flex flex-col gap-3">
+        <div class="text-sm text-gray-500">Loading events...</div>
+      </div>
+    </div>
   </div>
 
   <!-- MAIN CONTENT (UNCHANGED STRUCTURE) -->
@@ -233,12 +298,15 @@
       <div class="flex justify-between items-center mb-8">
         <h1 class="text-4xl font-semibold text-gray-900">Alumni Setu Community</h1>
 
-        <input
-          type="text"
-          id="searchBar"
-          placeholder="Search posts or hashtags..."
-          class="input-apple w-64"
-          oninput="searchPosts()" />
+        <div class="flex items-center gap-4">
+          <input type="text" id="searchBar" placeholder="Search posts or hashtags..." class="input-apple w-64"
+            oninput="searchPosts()" />
+
+          <button onclick="logout()"
+            class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition shadow-lg">
+            Logout
+          </button>
+        </div>
       </div>
 
       <!-- Domain filter -->
@@ -258,18 +326,12 @@
       <div class="post-upload-section mb-8">
         <h3 class="text-2xl font-semibold text-gray-900 mb-4">Share Your Insights</h3>
 
-        <input id="postTitle" type="text"
-               class="input-apple w-full mb-4"
-               placeholder="Post Title">
+        <input id="postTitle" type="text" class="input-apple w-full mb-4" placeholder="Post Title">
 
-        <textarea id="postContent" rows="4"
-                  class="input-apple w-full mb-4"
-                  placeholder="Write your post..."></textarea>
+        <textarea id="postContent" rows="4" class="input-apple w-full mb-4" placeholder="Write your post..."></textarea>
 
         <div class="flex flex-wrap gap-4 mb-4">
-          <input id="postHashtags" type="text"
-                 class="input-apple flex-1"
-                 placeholder="Add hashtags">
+          <input id="postHashtags" type="text" class="input-apple flex-1" placeholder="Add hashtags">
 
           <select id="postDomain" class="input-apple">
             <option value="">Select Domain</option>
@@ -280,8 +342,7 @@
             <option value="Cloud Computing">Cloud Computing</option>
           </select>
 
-          <input id="postImage" type="file" accept="image/*"
-                 class="input-apple p-2">
+          <input id="postImage" type="file" accept="image/*" class="input-apple p-2">
         </div>
 
         <button class="button-primary" onclick="uploadPost()">Share Post</button>
@@ -299,4 +360,5 @@
   <script type="module" src="../js/feed.js"></script>
 
 </body>
+
 </html>

@@ -2,22 +2,32 @@
 // AUTH GUARD
 // ======================================================
 let ably = null;
-let channel = null;
+let ablyChannel = null;
 let activeChatUserId = null;
 const token = localStorage.getItem("token");
-const user = JSON.parse(localStorage.getItem("user") || "{}");
-
-if (!token || !user.id) {
-  window.location.href = "/pages/login.html";
+if (!token) {
+  window.location.href = "/pages/alumni-login.html";
 }
 
 // ======================================================
 // CONFIG
 // ======================================================
 const API_BASE = "http://localhost:5136/api";
-const ABLY_KEY = "8F8WYw.u7oJeg:HI5m6xpMA56JN1LKc_XWYIrAqmNkGQjxiUc04Iwk8PY";
 
-const myUserId = user.id;
+let myUserId = null;
+
+function loadMe() {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    console.error("❌ No auth token found");
+    return;
+  }
+
+  const payload = JSON.parse(atob(token.split(".")[1]));
+  myUserId = payload.userId;
+
+  console.log("👤 Logged in as:", myUserId);
+}
 
 function authHeaders() {
   return {
@@ -28,8 +38,6 @@ function authHeaders() {
 
 // ======================================================
 let currentChatUserId = null;
-let ablyClient = null;
-let ablyChannel = null;
 
 // ======================================================
 // LOAD CONVERSATIONS
@@ -48,8 +56,6 @@ async function loadConversations() {
     console.error("Failed to load conversations", err);
   }
 }
-
-loadConversations();
 
 // ======================================================
 // RENDER CONVERSATION LIST
@@ -88,28 +94,27 @@ function renderConversationList(convos) {
 
 
 async function connectAbly() {
-  const token = localStorage.getItem("token");
+  try {
+    const res = await fetch(`${API_BASE}/chat/ably-token`, {
+      headers: authHeaders(),
+    });
 
-  const res = await fetch("http://localhost:5136/api/chat/ably-token", {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+    const tokenRequest = await res.json();
 
-  const tokenRequest = await res.json();
+    ably = new Ably.Realtime({
+      authCallback: (_, cb) => cb(null, tokenRequest),
+    });
 
-  ably = new Ably.Realtime({
-    authUrl: null,
-    token: tokenRequest,
-  });
+    ably.connection.on("connected", () => {
+      console.log("✅ Ably connected as:", ably.auth.clientId);
+    });
 
-  ably.connection.on("connected", () => {
-    console.log("✅ Ably connected");
-  });
-
-  ably.connection.on("failed", (err) => {
-    console.error("❌ Ably failed", err);
-  });
+    ably.connection.on("failed", (err) => {
+      console.error("❌ Ably failed", err);
+    });
+  } catch (err) {
+    console.error("❌ Ably init error", err);
+  }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -119,18 +124,30 @@ document.addEventListener("DOMContentLoaded", () => {
 // ======================================================
 // OPEN CHAT
 // ======================================================
-async function openChat(otherUserId, otherUserName) {
+async function openChat(otherUserId, otherUserName, conversationId) {
   currentChatUserId = otherUserId;
+  activeChatUserId = otherUserId;
+  activeConversationId = conversationId; // 👈 IMPORTANT
 
   document.getElementById("chatUserName").innerText = otherUserName;
   document.getElementById("chatMessages").innerHTML = "";
 
-  if (ablyChannel) ablyChannel.unsubscribe();
-  if (ablyClient) ablyClient.close();
+  if (ablyChannel) {
+    ablyChannel.unsubscribe();
+    ablyChannel.detach();
+  }
 
   await loadMessages();
+
+  // 👀 MARK CONVERSATION AS SEEN (THIS WAS MISSING)
+  await fetch(`${API_BASE}/chat/conversation/${conversationId}/seen`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+
   setupRealtime();
 }
+
 
 // ======================================================
 // LOAD MESSAGES
@@ -146,8 +163,10 @@ async function loadMessages() {
 
     const msgs = await res.json();
     msgs.forEach(addMessageToUI);
+    return msgs;
   } catch (err) {
     console.error("Failed to load messages", err);
+    return [];
   }
 }
 
@@ -155,96 +174,205 @@ async function loadMessages() {
 // REALTIME (ABLY)
 // ======================================================
 function setupRealtime() {
-  ablyClient = new Ably.Realtime(ABLY_KEY);
+  if (!ably || !activeChatUserId) return;
 
   const channelName =
-    myUserId < currentChatUserId
-      ? `chat:${myUserId}:${currentChatUserId}`
-      : `chat:${currentChatUserId}:${myUserId}`;
+    myUserId < activeChatUserId
+      ? `chat:${myUserId}:${activeChatUserId}`
+      : `chat:${activeChatUserId}:${myUserId}`;
 
-  ablyChannel = ablyClient.channels.get(channelName);
+  ablyChannel = ably.channels.get(channelName);
 
-  ablyChannel.subscribe("new-message", async (event) => {
-    const msg = event.data;
-    addMessageToUI(msg);
+  // 🔁 Clear previous listeners safely
+  ablyChannel.unsubscribe();
 
-    if (msg.receiverId === myUserId) {
-      await fetch(`${API_BASE}/chat/${msg.id}/seen`, {
+  ablyChannel.subscribe("delete-message", (msg) => {
+    const { messageId } = msg.data;
+    const el = document.getElementById(`msg-${messageId}`);
+    if (el) el.remove();
+  });
+
+  // 📩 NEW MESSAGE
+  ablyChannel.subscribe("new-message", async (msg) => {
+    const message = msg.data;
+
+    // Ignore messages not for this chat
+    if (
+      message.senderId !== activeChatUserId &&
+      message.receiverId !== activeChatUserId
+    ) return;
+
+    addMessageToUI(message);
+
+    // 🔔 Receiver acknowledges delivery
+    if (message.receiverId === myUserId && !message.deliveredAt) {
+      await fetch(`${API_BASE}/chat/${message.id}/delivered`, {
         method: "POST",
         headers: authHeaders(),
       });
     }
+
+    loadConversations();
   });
 
-  ablyChannel.subscribe("seen-message", (event) => {
-    const el = document.getElementById(`msg-${event.data.id}`);
-    if (el) {
-      el.querySelector(".msg-status").innerText = "✓✓ seen";
-    }
+
+  // ✅ DELIVERED listener (sender side)
+  ablyChannel.subscribe("message-delivered", (msg) => {
+    const { messageId } = msg.data;
+    if (!messageId) return;
+
+    const tick = document.querySelector(`#msg-${messageId} .tick`);
+    if (!tick) return;
+
+    tick.innerText = "✓✓";
+    tick.classList.remove("text-blue-400");
   });
+
+  // 👀 SEEN listener (authoritative from backend)
+  ablyChannel.subscribe("message-seen", (msg) => {
+    const { messageId } = msg.data;
+    if (!messageId) return;
+
+    const tick = document.querySelector(`#msg-${messageId} .tick`);
+    if (!tick) return;
+
+    tick.innerText = "✓✓";
+    tick.classList.add("text-blue-400");
+  });
+  console.log("📡 Subscribed:", channelName);
 }
 
 // ======================================================
 // SEND MESSAGE
 // ======================================================
 async function sendMessage() {
-  const messageInput = document.getElementById("msgInput");
-  const text = messageInput.value.trim();
-  if (!text || !currentChatUserId) return;
+  const input = document.getElementById("msgInput");
+  const content = input.value.trim();
+  if (!content || !activeChatUserId) return;
 
-  messageInput.value = "";
-
-  // 1️⃣ Send to backend
   const res = await fetch(`${API_BASE}/chat/send`, {
     method: "POST",
     headers: authHeaders(),
     body: JSON.stringify({
-      receiverId: currentChatUserId,
-      content: text,
+      receiverId: activeChatUserId,
+      content,
     }),
   });
 
   if (!res.ok) {
-    console.error("Failed to send message");
+    console.error("Send failed");
     return;
   }
 
-  const msg = await res.json();
+  const savedMessage = await res.json();
 
-  // 2️⃣ Render instantly
-  addMessageToUI(msg);
+  // ✅ Optimistic UI
+  addMessageToUI(savedMessage);
+  input.value = "";
 
-  // 3️⃣ Refresh conversation list
-  loadConversations();
+  // ✅ Realtime notify receiver
+  if (ablyChannel) {
+    ablyChannel.publish("new-message", savedMessage);
+  }
 }
 
 // ======================================================
 // MESSAGE BUBBLE UI
 // ======================================================
-function addMessageToUI(msg) {
-  if (document.getElementById(`msg-${msg.id}`)) return;
+function addMessageToUI(message) {
+  const container = document.getElementById("chatMessages");
 
-  const box = document.getElementById("chatMessages");
-  const mine = msg.senderId === myUserId;
+  if (document.getElementById(`msg-${message.id}`)) return;
 
-  const div = document.createElement("div");
-  div.id = `msg-${msg.id}`;
-  div.className =
-    (mine ? "ml-auto bg-purple-600" : "mr-auto bg-[#1b1b23]") +
-    " p-3 rounded-xl max-w-xl text-white mb-3";
+  const isMine = String(message.senderId) === String(myUserId);
 
-  const time = new Date(msg.createdAt).toLocaleTimeString([], {
+  const wrapper = document.createElement("div");
+  wrapper.id = `msg-${message.id}`;
+  wrapper.className = `flex w-full mb-3 ${isMine ? "justify-end" : "justify-start"}`;
+
+  const bubble = document.createElement("div");
+  bubble.className = `
+    max-w-[65%] px-4 py-3 rounded-2xl text-sm
+    ${isMine
+      ? "bg-purple-600 text-white rounded-br-md"
+      : "bg-[#1e1e28] text-white rounded-bl-md"}
+  `;
+
+  const time = new Date(message.createdAt).toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
   });
 
-  div.innerHTML = `
-    <div>${msg.content}</div>
-    <div class="msg-status text-xs opacity-60 mt-1">
-      ${time} · ${msg.seenAt ? "✓✓ seen" : "✓ sent"}
+  bubble.innerHTML = `
+    <div>${message.content}</div>
+    <div class="text-[11px] mt-1 text-right text-gray-300">
+      ${time}
+      ${isMine
+        ? `
+          <span class="tick ml-1 ${message.seenAt ? "text-blue-400" : ""}">
+            ${message.seenAt ? "✓✓" : "✓"}
+          </span>
+          <button
+            onclick="deleteMessage('${message.id}')"
+            class="ml-2 text-xs text-red-300 hover:text-red-500">
+            🗑
+          </button>
+        `
+        : ""}
+
     </div>
   `;
 
-  box.appendChild(div);
-  box.scrollTop = box.scrollHeight;
+  wrapper.appendChild(bubble);
+  container.appendChild(wrapper);
+  container.scrollTop = container.scrollHeight;
+}
+
+async function deleteMessage(messageId) {
+  const ok = confirm("Delete this message?");
+  if (!ok) return;
+
+  const res = await fetch(`${API_BASE}/chat/${messageId}/delete`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+
+  if (!res.ok) {
+    alert("Failed to delete message");
+    return;
+  }
+
+  const el = document.getElementById(`msg-${messageId}`);
+  if (el) el.remove();
+}
+
+async function initMessagesPage() {
+  await loadMe();
+  await loadConversations();
+}
+
+initMessagesPage();
+
+document.addEventListener("DOMContentLoaded", async () => {
+  loadMe();                  // sync now
+  await loadConversations(); // messages depend on myUserId
+  connectAbly();
+});
+
+function appendMessage(message) {
+  const isMine = message.senderId === myUserId;
+
+  const bubble = document.createElement("div");
+  bubble.className = `flex ${isMine ? "justify-end" : "justify-start"}`;
+
+  bubble.innerHTML = `
+    <div class="max-w-[65%] px-4 py-2 rounded-2xl text-sm
+      ${isMine
+        ? "bg-purple-600 text-white rounded-br-none"
+        : "bg-[#1f1f2b] text-white rounded-bl-none"}">
+      ${message.content}
+    </div>
+  `;
+
+  document.getElementById("chatMessages").appendChild(bubble);
 }

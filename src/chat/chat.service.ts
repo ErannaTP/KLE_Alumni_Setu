@@ -100,34 +100,22 @@ export class ChatService {
     content: string,
     replyToId?: string,
   ) {
-    // Always sort IDs so (A,B) and (B,A) are same conversation
     const [userAId, userBId] =
       senderId < receiverId
         ? [senderId, receiverId]
         : [receiverId, senderId];
 
-    // 1️⃣ Find existing conversation
     let conversation = await this.prisma.conversation.findUnique({
-      where: {
-        userAId_userBId: {
-          userAId,
-          userBId,
-        },
-      },
+      where: { userAId_userBId: { userAId, userBId } },
     });
 
-    // 2️⃣ Create ONLY if not exists
     if (!conversation) {
       conversation = await this.prisma.conversation.create({
-        data: {
-          userAId,
-          userBId,
-        },
+        data: { userAId, userBId },
       });
     }
 
-    // 3️⃣ Create message
-    return this.prisma.message.create({
+    const message = await this.prisma.message.create({
       data: {
         senderId,
         receiverId,
@@ -136,6 +124,16 @@ export class ChatService {
         conversationId: conversation.id,
       },
     });
+
+    // 🔴 REALTIME: Publish to Ably
+    const ably = new Ably.Rest(process.env.ABLY_API_KEY!);
+    const channelName = `chat:${conversation.id}`;
+
+    await ably.channels.get(channelName).publish("new-message", {
+      ...message,
+    });
+
+    return message;
   }
 
 
@@ -193,19 +191,83 @@ export class ChatService {
       where: { id: messageId },
     });
 
-    if (!msg) return;
+    if (!msg || msg.receiverId !== userId || msg.seenAt) return null;
 
-    // ❌ Sender should NEVER mark their own message as seen
-    if (msg.receiverId !== userId) return;
-
-    return this.prisma.message.update({
+    const updated = await this.prisma.message.update({
       where: { id: messageId },
-      data: {
-        seenAt: new Date(),
-      },
+      data: { seenAt: new Date() },
     });
+
+    // 🔔 Publish seen event (single source of truth)
+    const ably = new Ably.Rest(process.env.ABLY_API_KEY!);
+    await ably.channels
+      .get(`chat:${updated.conversationId}`)
+      .publish("message-seen", {
+        messageId: updated.id,
+        seenAt: updated.seenAt,
+      });
+
+    return updated;
   }
 
+  async markConversationSeen(userId: string, conversationId: string) {
+  const unseen = await this.prisma.message.findMany({
+    where: {
+      conversationId,
+      receiverId: userId,
+      seenAt: null,
+    },
+  });
+
+  if (!unseen.length) return;
+
+  const now = new Date();
+
+  await this.prisma.message.updateMany({
+    where: {
+      id: { in: unseen.map(m => m.id) },
+    },
+    data: { seenAt: now },
+  });
+
+  const ably = new Ably.Rest(process.env.ABLY_API_KEY!);
+
+  for (const msg of unseen) {
+    await ably.channels
+      .get(`chat:${conversationId}`)
+      .publish("message-seen", {
+        messageId: msg.id,
+        seenAt: now,
+      });
+  }
+}
+
+// ---------------- DELETE MESSAGE ----------------
+async deleteMessage(userId: string, id: string) {
+  const msg = await this.prisma.message.findUnique({ where: { id } });
+  if (!msg) throw new NotFoundException();
+
+  if (msg.senderId !== userId) {
+    throw new ForbiddenException("You can only delete your own messages");
+  }
+
+  await this.prisma.message.delete({ where: { id } });
+
+  // 🔔 Notify realtime clients
+  const ably = new Ably.Rest(process.env.ABLY_API_KEY!);
+  await ably.channels
+    .get(`chat:${msg.conversationId}`)
+    .publish("delete-message", { messageId: id });
+
+  return { success: true };
+}
+
+  async markDelivered(messageId: string) {
+    return this.prisma.message.update({
+      where: { id: messageId },
+      data: { deliveredAt: new Date() },
+    });
+  }
 
   async getMessagesByConversation(
     userId: string,

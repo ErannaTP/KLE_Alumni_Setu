@@ -1,58 +1,110 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
-  <title>Signup | Alumni Setu</title>
+  <title>Student Sign Up | Alumni Setu</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body class="min-h-screen bg-[#0f0f14] flex items-center justify-center text-white">
+<body class="min-h-screen text-white bg-[#0f172a]">
 
-  <div class="w-full max-w-md bg-[#16161c] p-8 rounded-xl shadow-lg">
-    <h1 class="text-2xl font-bold mb-6 text-center">Create Account</h1>
-
-    <div class="space-y-4">
-      <input
-        id="name"
-        type="text"
-        placeholder="Full name"
-        class="w-full p-3 rounded bg-[#1b1b23] focus:outline-none"
-      />
-
-      <input
-        id="email"
-        type="email"
-        placeholder="Email address"
-        class="w-full p-3 rounded bg-[#1b1b23] focus:outline-none"
-      />
-
-      <input
-        id="password"
-        type="password"
-        placeholder="Password"
-        class="w-full p-3 rounded bg-[#1b1b23] focus:outline-none"
-      />
-
-      <!-- ✅ ERROR MESSAGE BOX (IMPORTANT) -->
-      <p id="err" class="text-red-400 text-sm"></p>
-
-      <button
-        onclick="signup()"
-        class="w-full bg-purple-600 hover:bg-purple-700 p-3 rounded font-semibold"
-      >
-        Sign up
-      </button>
+  <!-- ================= HEADER ================= -->
+  <header class="w-full px-10 py-5 flex items-center justify-between bg-gradient-to-r from-[#0b3c78] to-[#092c57]">
+    <div class="flex items-center gap-3">
+      <img src="/assets/images/kle-logo.png" alt="KLE Logo" class="h-10" />
+      <div>
+        <h1 class="text-lg font-semibold">KLE Alumni Setu</h1>
+        <p class="text-xs text-gray-300">
+          Connecting students & alumni
+        </p>
+      </div>
     </div>
 
-    <p class="text-sm text-center text-gray-400 mt-6">
-      Already have an account?
-      <a href="/pages/login.html" class="text-purple-400 hover:underline">
-        Login
-      </a>
-    </p>
-  </div>
+    <nav class="flex items-center gap-6 text-sm">
+      <a href="/" class="hover:text-purple-300">Home</a>
+      <a href="../Final.html#login" class="hover:text-purple-300">Login</a>
+    </nav>
+  </header>
 
-  <!-- ✅ JS FILE -->
+  <!-- ================= MAIN (WITH BG IMAGE) ================= -->
+  <main class="flex items-center justify-center px-4 py-16 bg-cover bg-center"
+    style="background-image: url('/assets/images/kle-img.png');">
+    <div class="w-full max-w-md bg-[#16161c]/95 backdrop-blur p-8 rounded-2xl shadow-2xl">
+
+      <!-- Title -->
+      <h2 class="text-2xl font-bold text-center mb-2">
+        Student Registration
+      </h2>
+      <p class="text-center text-gray-400 text-sm mb-6">
+        Create your student account to connect with alumni
+      </p>
+
+      <!-- ================= STUDENT SIGNUP FORM ================= -->
+      <div class="space-y-4">
+
+        <input id="name" type="text" placeholder="Full Name (as per college records)"
+          class="w-full p-3 rounded-lg bg-[#1b1b23] focus:outline-none focus:ring-2 focus:ring-purple-500" />
+
+        <input id="email" type="email" placeholder="College Email ID"
+          class="w-full p-3 rounded-lg bg-[#1b1b23] focus:outline-none focus:ring-2 focus:ring-purple-500" />
+
+        <input id="branch" type="text" placeholder="Branch (e.g., CSE, ECE)"
+          class="w-full p-3 rounded-lg bg-[#1b1b23] focus:outline-none focus:ring-2 focus:ring-purple-500" />
+
+        <input id="batchYear" type="number" placeholder="Batch Year (e.g., 2025)"
+          class="w-full p-3 rounded-lg bg-[#1b1b23] focus:outline-none focus:ring-2 focus:ring-purple-500" />
+
+        <input id="password" type="password" placeholder="Create Password"
+          class="w-full p-3 rounded-lg bg-[#1b1b23] focus:outline-none focus:ring-2 focus:ring-purple-500" />
+
+        <input id="confirmPassword" type="password" placeholder="Confirm Password"
+          class="w-full p-3 rounded-lg bg-[#1b1b23] focus:outline-none focus:ring-2 focus:ring-purple-500" />
+
+        <!-- Error -->
+        <p id="err" class="text-red-400 text-sm"></p>
+
+        <button onclick="signup()"
+          class="w-full bg-[#0b3c78] hover:bg-[#092c57] transition p-3 rounded-lg font-semibold">
+          Sign Up as Student
+        </button>
+      </div>
+
+      <!-- ================= DIVIDER ================= -->
+      <div class="my-8 flex items-center gap-3">
+        <div class="flex-1 h-px bg-gray-700"></div>
+        <span class="text-xs text-gray-400">OR</span>
+        <div class="flex-1 h-px bg-gray-700"></div>
+      </div>
+
+      <!-- ================= ALUMNI CTA ================= -->
+      <div class="bg-gradient-to-r from-[#1e293b] to-[#0f172a] p-6 rounded-xl text-center">
+        <h3 class="text-lg font-semibold mb-1">
+          Are you an Alumni?
+        </h3>
+        <p class="text-sm text-gray-400 mb-4">
+          Alumni do not need to sign up. Login using your registered details.
+        </p>
+
+        <button onclick="window.location.href='../Final.html#login'"
+          class="w-full bg-white text-[#0f172a] hover:bg-gray-200 transition p-3 rounded-lg font-semibold">
+          Login as Alumni
+        </button>
+      </div>
+
+      <!-- ================= FOOTER ================= -->
+      <p class="text-sm text-center text-gray-400 mt-6">
+        Already registered?
+        <a href="../Final.html#login" class="text-purple-400 hover:underline">
+          Login here
+        </a>
+      </p>
+
+    </div>
+  </main>
+
+  <!-- JS -->
   <script src="/js/signup.js"></script>
 </body>
+
 </html>

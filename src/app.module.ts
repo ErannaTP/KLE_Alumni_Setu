@@ -8,18 +8,21 @@ import { PostsModule } from './posts/posts.module';
 import { UserModule } from './user/user.module';
 import { ChatModule } from "./chat/chat.module";
 import { AuthModule } from './auth/auth.module';
+import { StudentModule } from './student/student.module';
+
 
 import { ConnectionsModule } from './connections/connections.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
     ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', 'public'),
+      rootPath: join(process.cwd(), 'public'),
       serveRoot: '/',
     }),
 
     ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', 'public', 'uploads'),
+      rootPath: join(process.cwd(), 'public', 'uploads'),
       serveRoot: '/uploads',
     }),
 
@@ -29,6 +32,8 @@ import { ConnectionsModule } from './connections/connections.module';
     UserModule,
     ChatModule,
     ConnectionsModule,
+    StudentModule,
+    AdminModule,
   ],
 })
 export class AppModule implements NestModule {
@@ -36,7 +41,8 @@ export class AppModule implements NestModule {
     consumer.apply(JwtAuthMiddleware).exclude(
       'auth/signup',
       'auth/login',
-      'public/(.*)',
+      'admin/login',
+      'admin/verify',
     ).forRoutes('*');
   }
 }

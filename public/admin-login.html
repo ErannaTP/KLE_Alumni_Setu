@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - KLE Alumni Connect</title>
+    <link rel="preload" href="admin-dashboard.html" as="document">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="js/api.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        body.loaded {
+            opacity: 1;
+        }
+
+        .login-wrapper {
+            width: 100%;
+            max-width: 480px;
+        }
+
+        .login-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 3rem 2.5rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo-section {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo-icon {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        h2 {
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: #1a202c;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: #718096;
+            font-size: 0.95rem;
+            margin-bottom: 2rem;
+        }
+
+        .tab-switcher {
+            display: flex;
+            gap: 0;
+            margin-bottom: 2rem;
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 4px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: none;
+            background: transparent;
+            color: #718096;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .form-section {
+            display: none;
+        }
+
+        .form-section.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            color: #2d3748;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #a0aec0;
+            font-size: 1rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.875rem 1rem 0.875rem 3rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #a0aec0;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: color 0.3s ease;
+        }
+
+        .password-toggle:hover {
+            color: #667eea;
+        }
+
+        .form-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .remember-me input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .remember-me label {
+            color: #4a5568;
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+
+        .forgot-link {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        .forgot-link:hover {
+            color: #764ba2;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 14px rgba(102, 126, 234, 0.4);
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.5);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .loading-overlay.show {
+            display: flex;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .alert {
+            padding: 0.875rem 1rem;
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            display: none;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert.show {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .alert-error {
+            background: #fee;
+            color: #c53030;
+            border: 1px solid #fc8181;
+        }
+
+        .alert-success {
+            background: #f0fdf4;
+            color: #047857;
+            border: 1px solid #86efac;
+        }
+
+        .divider {
+            text-align: center;
+            margin: 1.5rem 0;
+            color: #a0aec0;
+            font-size: 0.875rem;
+        }
+
+        .back-home {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+
+        .back-home a {
+            color: white;
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .back-home a:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateX(-3px);
+        }
+
+        .strength-meter {
+            margin-top: 0.5rem;
+            height: 4px;
+            background: #e2e8f0;
+            border-radius: 2px;
+            overflow: hidden;
+            display: none;
+        }
+
+        .strength-meter.show {
+            display: block;
+        }
+
+        .strength-meter-fill {
+            height: 100%;
+            transition: all 0.3s ease;
+            border-radius: 2px;
+        }
+
+        .strength-text {
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+            font-weight: 600;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .login-container {
+                padding: 2rem 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div id="forgotPasswordModal" class="modal-overlay"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
+        <div class="modal-content"
+            style="background: white; padding: 2rem; border-radius: 12px; max-width: 400px; width: 90%; position: relative;">
+            <span class="close-modal" onclick="closeForgotModal()"
+                style="position: absolute; top: 10px; right: 15px; font-size: 1.5rem; cursor: pointer; color: #718096;">&times;</span>
+
+            <!-- Step 1: Request OTP -->
+            <div id="forgotStep1">
+                <h3 style="margin-bottom: 1rem; color: #2d3748;">Reset Password</h3>
+                <p style="margin-bottom: 1.5rem; color: #718096; font-size: 0.9rem;">Enter your email to receive a
+                    One-Time Password (OTP).</p>
+                <form onsubmit="handleForgotRequest(event)">
+                    <div class="form-group">
+                        <label for="forgot-email">Email Address</label>
+                        <input type="email" id="forgot-email" placeholder="admin@example.com" required
+                            style="width: 100%; padding: 0.75rem; border: 2px solid #e2e8f0; border-radius: 8px;">
+                    </div>
+                    <button type="submit" class="submit-btn">Send OTP</button>
+                </form>
+            </div>
+
+            <!-- Step 2: Reset Password -->
+            <div id="forgotStep2" style="display: none;">
+                <h3 style="margin-bottom: 1rem; color: #2d3748;">Enter OTP</h3>
+                <p style="margin-bottom: 1.5rem; color: #718096; font-size: 0.9rem;">Check your email for the 6-digit
+                    code.</p>
+                <form onsubmit="handleForgotReset(event)">
+                    <div class="form-group">
+                        <label for="forgot-otp">Enter OTP</label>
+                        <input type="text" id="forgot-otp" placeholder="123456" required
+                            style="width: 100%; padding: 0.75rem; border: 2px solid #e2e8f0; border-radius: 8px;">
+                    </div>
+                    <div class="form-group">
+                        <label for="forgot-new-pass">New Password</label>
+                        <input type="password" id="forgot-new-pass" placeholder="Enter new password" required
+                            style="width: 100%; padding: 0.75rem; border: 2px solid #e2e8f0; border-radius: 8px;">
+                    </div>
+                    <button type="submit" class="submit-btn">Reset Password</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="login-wrapper">
+        <div class="login-container">
+            <div class="logo-section">
+                <div class="logo-icon">
+                    <i class="fas fa-shield-halved"></i>
+                </div>
+                <h2>Admin Portal</h2>
+                <p class="subtitle">Secure access to KLE Alumni Connect</p>
+            </div>
+
+            <div id="alert" class="alert"></div>
+
+            <!-- Login Form -->
+            <div id="login-form" class="form-section active">
+                <form onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label for="login-email">
+                            <i class="fas fa-envelope"></i> Email Address
+                        </label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-envelope input-icon"></i>
+                            <input type="email" id="login-email" placeholder="admin@test.com" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="login-password">
+                            <i class="fas fa-lock"></i> Password
+                        </label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input type="password" id="login-password" placeholder="Enter your password" required>
+                            <button type="button" class="password-toggle" onclick="togglePassword('login-password')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-footer">
+                        <div class="remember-me">
+                            <input type="checkbox" id="remember-me">
+                            <label for="remember-me">Remember me</label>
+                        </div>
+                        <a href="#" class="forgot-link" onclick="handleForgotPassword(event)">Forgot password?</a>
+                    </div>
+
+                    <button type="submit" class="submit-btn">
+                        <i class="fas fa-sign-in-alt"></i> Sign In
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="back-home">
+            <a href="Final.html">
+                <i class="fas fa-arrow-left"></i> Back to Homepage
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Initialize admin login page
+        function initializeAdminPage() {
+            // Just ensure the API is available
+            if (typeof api === 'undefined') {
+                console.error('API object not found. Make sure api.js is properly loaded.');
+            }
+        }
+
+        // Initialize on page load
+        initializeAdminPage();
+
+        // Password Toggle
+        function togglePassword(inputId) {
+            const input = document.getElementById(inputId);
+            const icon = event.target.closest('button').querySelector('i');
+
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        // Show Alert
+        function showAlert(message, type = 'error') {
+            const alert = document.getElementById('alert');
+            alert.className = `alert alert-${type} show`;
+
+            const icon = type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle';
+            alert.innerHTML = `<i class="fas ${icon}"></i> ${message}`;
+
+            setTimeout(() => hideAlert(), 5000);
+        }
+
+        // Hide Alert
+        function hideAlert() {
+            const alert = document.getElementById('alert');
+            alert.classList.remove('show');
+        }
+
+        // Handle Login
+        async function handleLogin(event) {
+            event.preventDefault();
+
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
+            const rememberMe = document.getElementById('remember-me').checked;
+
+            try {
+                // Show loading overlay
+                const loadingOverlay = document.getElementById('loading-overlay');
+                loadingOverlay.classList.add('show');
+
+                // Attempt to login via API with admin role
+                const result = await api.login(email, password, 'admin');
+
+                if (result.success && result.user && result.user.role === 'admin') {
+                    // Create session
+                    const session = {
+                        email: result.user.email,
+                        name: result.user.name,
+                        token: result.token, // Store token in session object too
+                        loginTime: new Date().toISOString(),
+                        rememberMe: rememberMe
+                    };
+
+                    sessionStorage.setItem('adminSession', JSON.stringify(session));
+                    sessionStorage.setItem('adminToken', result.token);
+
+                    if (rememberMe) {
+                        localStorage.setItem('adminSession', JSON.stringify(session));
+                        localStorage.setItem('adminToken', result.token);
+                    } else {
+                        // Clear any old persistent session
+                        localStorage.removeItem('adminSession');
+                        localStorage.removeItem('adminToken');
+                    }
+
+                    // Immediate redirect without delay
+                    window.location.href = 'admin-dashboard.html';
+                } else {
+                    // Hide loading overlay on error
+                    loadingOverlay.classList.remove('show');
+                    showAlert(result.message || 'Invalid admin credentials. Please try again.', 'error');
+                }
+            } catch (error) {
+                console.error('Admin login error:', error);
+                // Hide loading overlay on catch
+                document.getElementById('loading-overlay').classList.remove('show');
+                showAlert('Login failed. Please check your credentials and try again.', 'error');
+            }
+        }
+
+
+        // Check if already logged in and show loading overlay
+        window.addEventListener('load', function () {
+            const session = sessionStorage.getItem('adminSession') || localStorage.getItem('adminSession');
+
+            if (session) {
+                // Show loading overlay and redirect immediately
+                const loadingOverlay = document.getElementById('loading-overlay');
+                loadingOverlay.classList.add('show');
+                window.location.href = 'admin-dashboard.html';
+            } else {
+                // No session, show login page smoothly
+                document.body.classList.add('loaded');
+            }
+        });
+
+        // Handle Forgot Password
+        function handleForgotPassword(event) {
+            event.preventDefault();
+            const emailInput = document.getElementById('login-email');
+            if (emailInput && emailInput.value) {
+                document.getElementById('forgot-email').value = emailInput.value;
+            }
+            openForgotModal();
+        }
+
+        // Forgot Password Functions
+        function openForgotModal() {
+            document.getElementById('forgotPasswordModal').style.display = 'flex';
+            document.getElementById('forgotStep1').style.display = 'block';
+            document.getElementById('forgotStep2').style.display = 'none';
+        }
+
+        function closeForgotModal() {
+            document.getElementById('forgotPasswordModal').style.display = 'none';
+        }
+
+        const API_BASE = '/api'; // Use relative path
+
+        async function handleForgotRequest(e) {
+            e.preventDefault();
+            const email = document.getElementById('forgot-email').value.trim();
+            const btn = e.target.querySelector('button');
+
+            if (!email) return alert("Please enter email");
+
+            const originalText = btn.textContent;
+            btn.textContent = "Sending...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`${API_BASE}/auth/forgot-password`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    // IMPORTANT: Send role: 'admin'
+                    body: JSON.stringify({ email, role: 'admin' })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    alert(data.message);
+                    document.getElementById('forgotStep1').style.display = 'none';
+                    document.getElementById('forgotStep2').style.display = 'block';
+                } else {
+                    alert("Error: " + (data.message || "Failed to send OTP"));
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Network error occurred.");
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        async function handleForgotReset(e) {
+            e.preventDefault();
+            const email = document.getElementById('forgot-email').value.trim();
+            const otp = document.getElementById('forgot-otp').value.trim();
+            const newPassword = document.getElementById('forgot-new-pass').value.trim();
+            const btn = e.target.querySelector('button');
+
+            if (!otp || !newPassword) return alert("Please fill all fields");
+
+            const originalText = btn.textContent;
+            btn.textContent = "Resetting...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`${API_BASE}/auth/reset-password-otp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    // IMPORTANT: Send role: 'admin'
+                    body: JSON.stringify({ email, otp, newPassword, role: 'admin' })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    alert("Password reset successfully! You can now login.");
+                    closeForgotModal();
+                } else {
+                    alert("Error: " + (data.message || "Failed to reset password"));
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Network error occurred.");
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+
+</html>

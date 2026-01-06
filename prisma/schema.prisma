@@ -18,21 +18,26 @@ enum FriendRequestStatus {
 }
 
 model User {
-  id            String   @id @default(uuid())
-  email         String   @unique
-  passwordHash  String
-  name          String
-  profilePic    String?
-  bio           String?
-  achievements  String?
-  skills        String?
-  domains       String[] @default([])
-  batchYear     Int?
-  company       String?
-  position      String?
-  rating        Float?
-  emailVerified Boolean  @default(false)
-  role          UserRole @default(ALUMNI)
+  id                    String   @id @default(uuid())
+  email                 String   @unique
+  passwordHash          String
+  name                  String
+  profilePic            String?
+  bio                   String?
+  achievements          String?
+  skills                String?
+  domains               String[] @default([])
+  batchYear             Int?
+  company               String?
+  position              String?
+  rating                Float?
+  emailVerified         Boolean  @default(false)
+  role                  UserRole @default(ALUMNI)
+  passwordResetRequired Boolean  @default(true)
+  otp                   String?
+  otpExpiry             DateTime?
+
+  student Student?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -50,11 +55,28 @@ model User {
   conversationsA Conversation[] @relation("UserAConversations")
   conversationsB Conversation[] @relation("UserBConversations")
 
-  sentFriendRequests     FriendRequest[] @relation("SentFriendRequests")
-  receivedFriendRequests FriendRequest[] @relation("ReceivedFriendRequests")
+  sentFriendRequests     FriendRequest[] @relation("FriendRequestSender")
+  receivedFriendRequests FriendRequest[] @relation("FriendRequestReceiver")
 
-  connections    Connection[] @relation("userConnections")
-  connectionsOf  Connection[] @relation("friendConnections")
+  connections   Connection[] @relation("ConnectionUser")
+  connectionsOf Connection[] @relation("ConnectionFriend")
+
+  eventRegistrations EventRegistration[]
+}
+
+model Student {
+  id String @id @default(uuid())
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  branch    String?
+  batchYear Int?
+  bio       String?
+  domains   String[] @default([])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Follow {
@@ -112,9 +134,9 @@ model Comment {
 }
 
 model Message {
-  id          String   @id @default(uuid())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   senderId    String
   receiverId  String
@@ -122,7 +144,7 @@ model Message {
   replyToId   String?
   deliveredAt DateTime?
   seenAt      DateTime?
-  edited      Boolean  @default(false)
+  edited      Boolean   @default(false)
 
   conversationId String
   conversation   Conversation @relation(fields: [conversationId], references: [id])
@@ -136,8 +158,8 @@ model Conversation {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  userAId   String
-  userBId   String
+  userAId String
+  userBId String
 
   userA User @relation("UserAConversations", fields: [userAId], references: [id])
   userB User @relation("UserBConversations", fields: [userBId], references: [id])
@@ -151,30 +173,71 @@ model Conversation {
 }
 
 model FriendRequest {
-  id         String               @id @default(uuid())
+  id String @id @default(uuid())
+
   senderId   String
-  receiverId String
-  status     FriendRequestStatus  @default(PENDING)
-  createdAt  DateTime             @default(now())
-  updatedAt  DateTime             @updatedAt
+  senderType UserRole
+  senderUser User     @relation("FriendRequestSender", fields: [senderId], references: [id])
 
-  sender   User @relation("SentFriendRequests", fields: [senderId], references: [id])
-  receiver User @relation("ReceivedFriendRequests", fields: [receiverId], references: [id])
+  receiverId   String
+  receiverType UserRole
+  receiverUser User     @relation("FriendRequestReceiver", fields: [receiverId], references: [id])
 
-  @@unique([senderId, receiverId])
-  @@index([receiverId])
-  @@index([senderId])
+  status    FriendRequestStatus @default(PENDING)
+  createdAt DateTime            @default(now())
 }
 
 model Connection {
-  id        String   @id @default(uuid())
-  userId    String
-  friendId  String
+  id String @id @default(uuid())
+
+  userId   String
+  userType UserRole
+  user     User     @relation("ConnectionUser", fields: [userId], references: [id])
+
+  friendId   String
+  friendType UserRole
+  friend     User     @relation("ConnectionFriend", fields: [friendId], references: [id])
+
   createdAt DateTime @default(now())
 
-  user   User @relation("userConnections", fields: [userId], references: [id])
-  friend User @relation("friendConnections", fields: [friendId], references: [id])
+  @@unique([userId, userType, friendId, friendType])
+}
 
-  @@unique([userId, friendId])
-  @@index([friendId])
+model Admin {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  createdAt DateTime @default(now())
+  otp       String?
+  otpExpiry DateTime?
+}
+
+model Event {
+  id              String   @id @default(uuid())
+  title           String
+  description     String?
+  date            DateTime
+  location        String
+  type            String   @default("other")
+  maxAttendees    Int?
+  isVirtual       Boolean  @default(false)
+  tags            String[] @default([])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  registrations EventRegistration[]
+}
+
+model EventRegistration {
+  id        String   @id @default(uuid())
+  eventId   String
+  userId    String
+  attended  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@unique([eventId, userId])
 }

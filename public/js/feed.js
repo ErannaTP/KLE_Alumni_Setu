@@ -1,31 +1,18 @@
 // 🔐 reuse token from feed.html (DO NOT redeclare)
 let loggedInUserId = null;
 
-async function resolveLoggedInUser() {
-  const res = await fetch("http://localhost:5136/api/user/profile", {
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
-    },
-  });
+function resolveLoggedInUserFromToken() {
+  const token = localStorage.getItem("token");
+  if (!token) return null;
 
-  if (!res.ok) {
-    window.location.replace("/pages/login.html");
-    return;
-  }
-
-  const user = await res.json();
-  loggedInUserId = user.id;
-
-  console.log("Resolved loggedInUserId =", loggedInUserId);
+  const payload = JSON.parse(atob(token.split(".")[1]));
+  loggedInUserId = payload.userId;
 }
+
 
 const authToken = localStorage.getItem("token");
 
-console.log("Feed page loggedInUserId =", loggedInUserId);
 
-if (!authToken) {
-  window.location.replace("/pages/login.html");
-}
 
 const API_BASE = "http://localhost:5136/api";
 
@@ -40,6 +27,7 @@ const loadingEl = document.getElementById("loading");
 let skip = 0;
 const take = 10;
 let isLoading = false;
+let hasMore = true; // Prevents infinite loop when no more posts
 
 let currentHashtag = null;
 let currentDomain = null;
@@ -79,6 +67,11 @@ function renderPost(post) {
     `;
   }
 
+  const roleBadge =
+    post.user?.role === "STUDENT"
+      ? `<span class="user-badge ml-1">Student</span>`
+      : `<span class="user-badge ml-1">Alumni</span>`;
+
   div.innerHTML = `
     <div class="flex items-start justify-between mb-4">
       <div class="flex items-center gap-4">
@@ -89,7 +82,7 @@ function renderPost(post) {
         <div>
           <div class="font-semibold text-gray-800 flex items-center gap-2">
             ${userName}
-            <span class="user-badge ml-1">Alumni</span>
+            <span class="user-badge ml-1">${roleBadge}</span>
           </div>
 
           <div class="text-sm text-gray-500">
@@ -100,9 +93,8 @@ function renderPost(post) {
         </div>
       </div>
 
-      ${
-        loggedInUserId && String(post.user.id) === String(loggedInUserId)
-          ? `
+      ${loggedInUserId && String(post.user.id) === String(loggedInUserId)
+      ? `
             <div class="relative">
               <button onclick="togglePostMenu('${post.id}')"
                       class="text-xl px-2 py-1 hover:bg-gray-100 rounded">
@@ -118,8 +110,8 @@ function renderPost(post) {
               </div>
             </div>
           `
-          : ""
-      }
+      : ""
+    }
     </div>
 
 
@@ -167,9 +159,10 @@ function renderPost(post) {
 // LOAD FEED
 // -----------------------
 async function loadFeed() {
-  if (isLoading) return;
+  if (isLoading || !hasMore) return;
   isLoading = true;
   loadingEl.style.display = "block";
+  loadingEl.textContent = "Loading more posts...";
 
   try {
     let url = `${API_BASE}/posts?skip=${skip}&take=${take}`;
@@ -184,18 +177,24 @@ async function loadFeed() {
     posts.forEach(renderPost);
 
     skip += posts.length;
-    if (posts.length < take) loadingEl.textContent = "No more posts.";
+    if (posts.length < take) {
+      hasMore = false;
+      loadingEl.textContent = "No more posts.";
+      // Keep display block so the text is visible
+    } else {
+      loadingEl.style.display = "none";
+    }
   } catch (err) {
     console.error(err);
     loadingEl.textContent = "Failed to load posts.";
+  } finally {
+    isLoading = false;
+    // Don't hide loadingEl here if hasMore is false, it needs to show "No more posts"
+    if (hasMore) {
+      loadingEl.style.display = "none";
+    }
   }
-
-  isLoading = false;
-  loadingEl.style.display = "none";
 }
-
-await resolveLoggedInUser();
-loadFeed();
 
 window.addEventListener("scroll", () => {
   if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 200) {
@@ -277,9 +276,9 @@ async function uploadPost() {
 
   const hashtags = rawTags
     ? rawTags
-        .split(/[,\s]+/)
-        .map(t => t.replace("#", "").trim())
-        .filter(Boolean)
+      .split(/[,\s]+/)
+      .map(t => t.replace("#", "").trim())
+      .filter(Boolean)
     : [];
 
   let imageUrls = [];
@@ -332,6 +331,7 @@ async function uploadPost() {
   // -----------------------
   feedContainer.innerHTML = "";
   skip = 0;
+  hasMore = true; // Reset hasMore on reload
   loadFeed();
 }
 
@@ -398,6 +398,7 @@ function searchByHashtag(hash) {
   currentHashtag = hash.replace("#", "");
   feedContainer.innerHTML = "";
   skip = 0;
+  hasMore = true; // Reset hasMore on new search
   loadFeed();
 }
 
@@ -405,6 +406,7 @@ function filterPosts() {
   currentDomain = document.getElementById("domainFilter").value;
   feedContainer.innerHTML = "";
   skip = 0;
+  hasMore = true; // Reset hasMore on filter change
   loadFeed();
 }
 
@@ -412,8 +414,29 @@ function searchPosts() {
   searchText = document.getElementById("searchBar").value.toLowerCase();
   feedContainer.innerHTML = "";
   skip = 0;
+  hasMore = true; // Reset hasMore on new search
   loadFeed();
 }
+
+
+document.addEventListener("DOMContentLoaded", () => {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    window.location.replace("/pages/alumni-login.html");
+    return;
+  }
+
+  resolveLoggedInUserFromToken();
+
+  console.log("Feed page loggedInUserId =", loggedInUserId);
+
+  // Reset feed state (prevents duplicates)
+  skip = 0;
+  feedContainer.innerHTML = "";
+  isLoading = false;
+
+  loadFeed();
+});
 
 window.uploadPost = uploadPost;
 window.togglePostMenu = togglePostMenu;

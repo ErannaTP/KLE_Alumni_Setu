@@ -1,9 +1,3 @@
-<script>
-  if (!localStorage.getItem("token")) {
-    window.location.href = "/pages/login.html";
-  }
-</script>
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -135,11 +129,11 @@
   <div class="sidebar p-6 flex flex-col gap-4">
     <div class="text-3xl font-bold mb-4">Alumni Setu</div>
 
-    <button class="nav-button" onclick="window.location.href='feed.html'">Home</button>
+    <button class="nav-button" onclick="window.location.href='/pages/feed.html'">Home</button>
     <button class="nav-button active-nav">Profile</button>
-    <button class="nav-button" onclick="window.location.href='messages.html'">Messages</button>
-    <button class="nav-button" onclick="window.location.href='connections.html'">Connections</button>
-  </div>
+    <button class="nav-button" onclick="window.location.href='/pages/messages.html'">Messages</button>
+    <button class="nav-button" onclick="window.location.href='/pages/connections.html'">Connections</button>
+  </div>  
 
   <!-- Main Section -->
   <div class="flex-1">
@@ -147,7 +141,7 @@
     <!-- Header -->
     <div class="topbar">
       <h2 class="text-xl font-semibold text-purple-200">Profile Settings</h2>
-      <span class="text-gray-300 text-sm">Logged in as Alumni</span>
+      <span id="logged-role" class="text-sm text-gray-400"></span>
     </div>
 
     <!-- Body -->

@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>About Us - KLE Tech Alumni Network</title>
+  <style>
+    :root{
+      --brand:#1e4d91;
+      --brand-2:#0c2b57;
+      --accent:#ffb703;
+      --bg:#f7f8fb;
+      --card:#ffffff;
+      --text:#1b1f23;
+      --muted:#6b7280;
+      --radius:14px;
+    }
+
+    *{box-sizing:border-box}
+    html{
+      scroll-behavior:smooth;
+      height:100%;
+    }
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;
+      color:var(--text);
+      background:var(--bg);
+      line-height:1.45;
+      min-height:100%;
+      display:flex;
+      flex-direction:column;
+    }
+
+    /* Header styles */
+    header{
+      background:linear-gradient(135deg,var(--brand),var(--brand-2));
+      color:#fff;
+      padding:20px 16px;
+      box-shadow:0 2px 10px rgba(0,0,0,.1);
+    }
+    .topbar{
+      max-width:1100px;
+      margin:0 auto;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .logo-area{
+      display:flex;
+      align-items:center;
+      gap:16px;
+    }
+    .logo{
+      width:60px;
+      height:60px;
+      border-radius:10px;
+      background:#fff;
+      display:block;
+      object-fit:contain;
+    }
+    .site-meta{ display:flex; flex-direction:column; }
+    .site-title{ margin:0; font-size:1.25rem; font-weight:700; }
+    .site-sub{ margin:2px 0 0; font-size:.9rem; color:#e6eefc; }
+
+    .nav-links{
+      display:flex;
+      gap:20px;
+      align-items:center;
+    }
+    .nav-links a{
+      color:#fff;
+      text-decoration:none;
+      font-weight:600;
+      font-size:1rem;
+      transition:opacity 0.2s ease;
+    }
+    .nav-links a:hover{ opacity:0.8; }
+    .nav-links a.active{
+      border-bottom:2px solid var(--accent);
+      padding-bottom:4px;
+    }
+
+    /* Main Content */
+    main{
+      flex:1 0 auto;
+      max-width:1100px;
+      margin:0 auto;
+      padding:40px 16px 60px;
+      width:100%;
+    }
+
+    .page-header{
+      text-align:center;
+      margin-bottom:50px;
+    }
+    .page-title{
+      font-size:2.5rem;
+      color:var(--brand);
+      margin:0 0 15px;
+      font-weight:700;
+    }
+    .page-subtitle{
+      font-size:1.2rem;
+      color:var(--muted);
+      margin:0;
+    }
+
+    /* About Content */
+    .about-content{
+      background:#fff;
+      border-radius:var(--radius);
+      padding:40px;
+      box-shadow:0 6px 20px rgba(0,0,0,.05);
+    }
+
+    .about-subsection{
+      margin:35px 0;
+      padding:25px;
+      background:#f7f8fb;
+      border-radius:10px;
+      border-left:4px solid var(--brand);
+    }
+    .about-subsection h3{
+      color:var(--brand);
+      font-size:1.5rem;
+      margin:0 0 15px;
+      font-weight:700;
+    }
+    .about-subsection p{
+      color:var(--text);
+      line-height:1.8;
+      margin:15px 0;
+      font-size:1.05rem;
+    }
+
+    /* Team Photo */
+    .team-section{
+      margin:40px 0;
+      text-align:center;
+    }
+    .team-photo{
+      max-width:100%;
+      width:100%;
+      height:auto;
+      border-radius:var(--radius);
+      box-shadow:0 8px 24px rgba(0,0,0,.12);
+      margin-top:20px;
+    }
+
+    /* Pillars Table Styles */
+    .pillars-table{
+      margin:25px 0;
+      overflow-x:auto;
+    }
+    .pillars-grid{
+      width:100%;
+      border-collapse:collapse;
+      background:#fff;
+      border-radius:10px;
+      overflow:hidden;
+      box-shadow:0 4px 12px rgba(0,0,0,.08);
+    }
+    .pillars-grid thead{
+      background:linear-gradient(135deg,var(--brand),var(--brand-2));
+      color:#fff;
+    }
+    .pillars-grid th{
+      padding:18px 20px;
+      text-align:left;
+      font-weight:700;
+      font-size:1.05rem;
+    }
+    .pillars-grid td{
+      padding:20px;
+      border-bottom:1px solid #e7ebf4;
+      vertical-align:top;
+    }
+    .pillars-grid tbody tr:last-child td{
+      border-bottom:none;
+    }
+    .pillars-grid tbody tr:hover{
+      background:#f7f8fb;
+    }
+    .pillar-name{
+      font-weight:700;
+      color:var(--brand);
+      min-width:150px;
+    }
+    .pillar-icon{
+      font-size:2rem;
+      margin-bottom:8px;
+    }
+    .pillars-grid ul{
+      margin:0;
+      padding-left:20px;
+    }
+    .pillars-grid li{
+      margin:8px 0;
+      color:var(--text);
+      line-height:1.6;
+    }
+
+    /* Philosophy Section */
+    .philosophy-section{
+      background:linear-gradient(135deg,rgba(30,77,145,0.05),rgba(255,183,3,0.05));
+      border-left-color:var(--accent);
+    }
+    .guide-acknowledgment{
+      margin-top:25px;
+      padding:20px;
+      background:#fff;
+      border-radius:8px;
+      border-left:3px solid var(--accent);
+      font-style:italic;
+    }
+    .guide-acknowledgment p{
+      margin:0;
+      color:var(--brand);
+    }
+
+    /* Professional Footer */
+    footer{
+      flex-shrink:0;
+      background:#2c3e50;
+      color:#e0e0e0;
+      padding:50px 16px 20px;
+      margin-top:auto;
+    }
+    .footer-content{
+      max-width:1100px;
+      margin:0 auto;
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:50px;
+      margin-bottom:30px;
+    }
+    .footer-section h3{
+      color:#fff;
+      font-size:1.2rem;
+      margin:0 0 20px;
+      font-weight:700;
+    }
+    .footer-section p,
+    .footer-section li{
+      color:#b0b0b0;
+      line-height:1.8;
+      margin:10px 0;
+      font-size:0.95rem;
+    }
+    .footer-section ul{
+      list-style:none;
+      padding:0;
+      margin:0;
+    }
+    .footer-section a{
+      color:#b0b0b0;
+      text-decoration:none;
+      transition:color 0.3s ease;
+    }
+    .footer-section a:hover{
+      color:#ffb703;
+    }
+    .contact-item{
+      display:flex;
+      align-items:start;
+      gap:10px;
+      margin:12px 0;
+    }
+    .contact-icon{
+      color:var(--accent);
+      font-size:1.1rem;
+      margin-top:3px;
+    }
+    .social-links{
+      display:flex;
+      gap:15px;
+      margin-top:15px;
+    }
+    .social-icon{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:40px;
+      height:40px;
+      background:#2a2a2a;
+      border-radius:50%;
+      color:#fff;
+      font-size:1.2rem;
+      transition:all 0.3s ease;
+      text-decoration:none;
+    }
+    .social-icon:hover{
+      background:var(--accent);
+      transform:translateY(-3px);
+    }
+    .footer-bottom{
+      border-top:1px solid #333;
+      padding-top:25px;
+      text-align:center;
+      color:#808080;
+      font-size:0.9rem;
+      max-width:1100px;
+      margin:0 auto;
+    }
+    .footer-bottom a{
+      color:#808080;
+      text-decoration:none;
+    }
+    .footer-bottom a:hover{
+      color:#ffb703;
+    }
+
+    /* Responsive */
+    @media(max-width:768px){
+      .page-title{font-size:2rem;}
+      .about-content{padding:30px 20px;}
+      .pillars-grid{font-size:0.9rem;}
+      .pillars-grid th,
+      .pillars-grid td{padding:12px;}
+      .pillar-icon{font-size:1.5rem;}
+      .nav-links{gap:12px;}
+      .nav-links a{font-size:0.9rem;}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="topbar">
+      <div class="logo-area">
+        <img class="logo" src="kle.png" alt="College Logo">
+        <div class="site-meta">
+          <h1 class="site-title">KLE Alumni Career Connect</h1>
+          <p class="site-sub">Connect students with mentors, jobs, and alumni opportunities</p>
+        </div>
+      </div>
+      <nav class="nav-links">
+        <a href="Final.html">Home</a>
+        <a href="about.html" class="active">About</a>
+        <a href="Final.html#contact" onclick="scrollToContact()">Contact</a>
+        <a href="Final.html#login">Sign In</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="page-header">
+      <h1 class="page-title">About Us</h1>
+      <p class="page-subtitle">Connecting Excellence, Building Futures</p>
+    </div>
+
+    <div class="about-content">
+      <!-- Our Legacy -->
+      <div class="about-subsection">
+        <h3>🏛️ Our Legacy: Excellence Since 1947</h3>
+        <p>KLE Tech alumni are proud graduates of <strong>KLE Technological University</strong> (formerly B.V. Bhoomaraddi College of Engineering and Technology), an institution with a remarkable legacy spanning over <strong>seven decades</strong>. Established in <strong>1947</strong>, KLE Tech has built a decades-long tradition of producing global leaders, innovators, and industry-ready professionals who shape the future across diverse fields.</p>
+        <p>Our institution stands as a beacon of <strong>Innovation and Entrepreneurship</strong>, fostering a culture where creativity meets practical application. Guided by our institutional motto, <em>"Creating Value and Leveraging Knowledge,"</em> we empower every graduate to not only excel in their careers but to make meaningful contributions to society and industry.</p>
+      </div>
+
+      <!-- Team Photo Section -->
+      <div class="team-section">
+        <h3 style="color:var(--brand); font-size:1.5rem; margin-bottom:15px;">Our Team</h3>
+        <p style="color:var(--muted); margin-bottom:20px;">The dedicated individuals behind KLE Tech Alumni Network</p>
+        <img src="team.jpeg" alt="KLE Tech Alumni Network Team" class="team-photo">
+      </div>
+
+      <!-- Our Mission -->
+      <div class="about-subsection">
+        <h3>🎯 Our Mission: Connect & Build Careers</h3>
+        <p>The KLE Tech Alumni Network platform is dedicated to facilitating <strong>continuous Student-Alumni Career Connections</strong> that transcend graduation. Our central goal is <strong>career readiness through mentorship and opportunity sharing</strong>. We believe that the strongest foundation for professional success is built through the transfer of real-world experience, industry insights, and meaningful relationships between those who have walked the path and those just beginning their journey.</p>
+      </div>
+
+      <!-- Three Pillars -->
+      <div class="about-subsection">
+        <h3>💎 Our Three Pillars of Support</h3>
+        <p>Our platform is built on three fundamental pillars that create a comprehensive career development ecosystem:</p>
+        
+        <div class="pillars-table">
+          <table class="pillars-grid">
+            <thead>
+              <tr>
+                <th>Pillar</th>
+                <th>Alumni Contribution</th>
+                <th>Student Benefit</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="pillar-name">
+                  <div class="pillar-icon">💼</div>
+                  <strong>Opportunities</strong>
+                </td>
+                <td>
+                  <ul>
+                    <li>Share job openings and internship positions</li>
+                    <li>Provide access to hidden job markets</li>
+                    <li>Offer employee referrals and recommendations</li>
+                  </ul>
+                </td>
+                <td>
+                  <ul>
+                    <li>Access exclusive career opportunities</li>
+                    <li>Tap into professional networks</li>
+                    <li>Leverage insider connections</li>
+                  </ul>
+                </td>
+              </tr>
+              <tr>
+                <td class="pillar-name">
+                  <div class="pillar-icon">🤝</div>
+                  <strong>Mentorship</strong>
+                </td>
+                <td>
+                  <ul>
+                    <li>Offer personalized career guidance</li>
+                    <li>Provide resume and portfolio critique</li>
+                    <li>Share interview preparation insights</li>
+                  </ul>
+                </td>
+                <td>
+                  <ul>
+                    <li>Receive one-on-one career coaching</li>
+                    <li>Learn from experienced professionals</li>
+                    <li>Build confidence through expert advice</li>
+                  </ul>
+                </td>
+              </tr>
+              <tr>
+                <td class="pillar-name">
+                  <div class="pillar-icon">📚</div>
+                  <strong>Knowledge</strong>
+                </td>
+                <td>
+                  <ul>
+                    <li>Host skill-building workshops</li>
+                    <li>Share latest industry trends</li>
+                    <li>Conduct tech talks and webinars</li>
+                  </ul>
+                </td>
+                <td>
+                  <ul>
+                    <li>Acquire relevant, up-to-date skills</li>
+                    <li>Stay ahead of industry changes</li>
+                    <li>Bridge the academic-industry gap</li>
+                  </ul>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Community Philosophy -->
+      <div class="about-subsection philosophy-section">
+        <h3>🌟 Our Community Philosophy</h3>
+        <p>We believe that <strong>career development is a lifelong journey</strong>, not a destination. Success is rarely achieved in isolation—it flourishes when knowledge is shared, connections are nurtured, and opportunities are passed forward. Our network provides meaningful ways for successful alumni to contribute to the next generation, ensuring that today's students become tomorrow's mentors.</p>
+        <p>This platform embodies the spirit of <em>paying it forward</em>—every connection made, every piece of advice shared, and every opportunity extended strengthens the entire KLE Tech community. Together, we create a virtuous cycle of growth, success, and contribution.</p>
+        <div class="guide-acknowledgment">
+          <p><em>This platform is developed under the esteemed guidance of <strong>Prof. Sunita Hiremath</strong>, whose vision and dedication continue to inspire excellence in our community.</em></p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Professional Footer -->
+  <footer id="contact">
+    <div class="footer-content">
+      <!-- Contact Us Section -->
+      <div class="footer-section">
+        <h3>Contact Us</h3>
+        <p>Have questions? We're here to help connect you with our alumni network and career opportunities.</p>
+        <div class="contact-item">
+          <span class="contact-icon">📍</span>
+          <div>
+            <p>KLE Technological University<br>
+            Vidyanagar, Hubballi - 580031<br>
+            Karnataka, India</p>
+          </div>
+        </div>
+        <div class="contact-item">
+          <span class="contact-icon">📞</span>
+          <p>+91-836-237-3333</p>
+        </div>
+        <div class="contact-item">
+          <span class="contact-icon">✉️</span>
+          <p>info@kletech.ac.in</p>
+        </div>
+      </div>
+      
+      <!-- Quick Links -->
+      <div class="footer-section">
+        <h3>Quick Links</h3>
+        <ul>
+          <li><a href="about.html">About Us</a></li>
+          <li><a href="#">Programs & Courses</a></li>
+          <li><a href="#">Events & News</a></li>
+          <li><a href="#">Admissions</a></li>
+          <li><a href="#">Research</a></li>
+        </ul>
+      </div>
+      
+      <!-- Alumni Resources -->
+      <div class="footer-section">
+        <h3>Alumni Resources</h3>
+        <ul>
+          <li><a href="#">Alumni Directory</a></li>
+          <li><a href="#">Mentorship Program</a></li>
+          <li><a href="#">Job Board</a></li>
+          <li><a href="#">Alumni Events</a></li>
+          <li><a href="#">Success Stories</a></li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="footer-bottom">
+      <p>© 2025 KLE Technological University Alumni Association. All rights reserved. | <a href="#">Privacy Policy</a> | <a href="#">Terms of Service</a></p>
+    </div>
+  </footer>
+</body>
+</html>
